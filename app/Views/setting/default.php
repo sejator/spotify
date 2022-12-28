@@ -113,15 +113,17 @@
                             updateJadwalSholat()
                         }
                         if (data.suara_adzan == 1) {
+                            cek_info = true
                             div_adzan.text('Status Adzan Aktif')
                         } else {
+                            cek_info = false
                             div_adzan.text('Status Adzan Non Aktif')
                         }
 
                         localStorage.setItem('suara_adzan', data.suara_adzan)
                         localStorage.setItem('jeda_adzan', data.jeda_adzan)
                         localStorage.setItem('jeda_iklan', data.jeda_iklan)
-                        localStorage.setItem('cek_info', data.cek_info)
+                        localStorage.setItem('cek_info', cek_info)
 
                     } else {
                         toast({
