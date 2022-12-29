@@ -116,6 +116,12 @@ class Home extends BaseController {
                 'playlist' => Services::spotify()->artisTrack($artis->id),
             ]);
             break;
+            
+        case 'detail-album':
+            return view('spotify/detail_album', [
+                'album' => Services::spotify()->detailAlbum($param),
+            ]);
+            break;
 
         default:
             // halaman khusus untuk admin

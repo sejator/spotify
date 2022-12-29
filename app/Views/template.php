@@ -36,7 +36,7 @@
     </div>
 
     <!--  BEGIN NAVBAR  -->
-    <header class="desktop-nav header navbar fixed-top" style="padding: 5px 0;">
+    <header class="desktop-nav header navbar fixed-top">
         <div class="nav-logo">
             <a href="javascript:void(0);" class="nav-link sidebarCollapse d-inline-block mr-sm-5" data-placement="bottom">
                 <i class="flaticon-menu-line-3"></i>
@@ -44,7 +44,7 @@
         </div>
 
         <ul class="navbar-nav flex-row mr-auto">
-            <li class="nav-item ml-3 mr-lg-4 align-self-center">
+            <li class="nav-item mr-lg-4 align-self-center">
                 <a href="javascript:void(0);" class="nav-link text-white">
                     <i id="random" class="fas fa-random bs-tooltip" data-original-title="Random On" data-toggle="tooltip" data-placement="top" onclick="playlistRandom()"></i>
                 </a>
@@ -80,7 +80,7 @@
         </ul>
 
         <ul class="navbar-nav flex-row mr-auto" style="width: 50%;">
-            <li class="nav-item mr-lg-4 align-self-center">
+            <li class="nav-item mr-lg-2 align-self-center">
                 <span class="text-white" id="seek">00:00</span>
             </li>
             <li class="nav-item align-self-center" style="width: 70%;">
@@ -89,11 +89,23 @@
                 </div>
                 <input type="range" id="progress" style="width: 100%;" min="0" max="" value="0" oninput="onProgress(this.value)" onchange="setPositionTrack(this.value)">
             </li>
-            <li class="nav-item ml-lg-4 align-self-center">
+            <li class="nav-item ml-lg-2 align-self-center">
                 <span class="text-white" id="durasi">00:00</span>
             </li>
 
-            <li class="nav-item dropdown message-dropdown ml-lg-4 mr-lg-4 d-sm-block d-none align-self-center">
+            <li class="nav-item ml-lg-3 mr-2 align-self-center">
+                <img id="info-gambar" style="max-height: 40px;" src="">
+            </li>
+            <li class="nav-item align-self-center" style="width: 25%;">
+                <div>
+                    <div id="info-judul"></div>
+                    <div id="info-artis"></div>
+                </div>
+            </li>
+        </ul>
+
+        <ul class="navbar-nav flex-row ml-auto" style="width: 15%;">
+            <li class="nav-item dropdown message-dropdown d-sm-block d-none align-self-center">
                 <a href="javascript:void(0);" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     <span class="icon flaticon-computer-line text-white"></span>
                 </a>
@@ -101,14 +113,11 @@
                     <div id="list-device"></div>
                 </div>
             </li>
-        </ul>
-
-        <ul class="navbar-nav flex-row mr-auto" style="width: 15%;">
-            <li class="nav-item align-self-center" style="width: 100%;">
+            <li class="nav-item ml-3 align-self-center" style="width: 100%;">
                 <div class="text-white" id="info-volume">Volume 50%</div>
                 <input type="range" id="volume" style="width: 100%;" min="0" max="100" value="50" onchange="jedaVolume()" oninput="setVolume(this.value)">
             </li>
-            <li class="nav-item ml-5 mr-lg-2 align-self-center">
+            <li class="nav-item ml-3 mr-3 align-self-center">
                 <a title="Ganti Tema" href="javascript:void(0);" id="ganti-tema" class="nav-link text-white"></a>
             </li>
         </ul>
@@ -193,7 +202,7 @@
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
     <script src="<?= base_url('assets/js/design-js/design.js') ?>"></script>
     <script src="<?= base_url('assets/js/custom.js') ?>"></script>
-    <script src="<?= base_url('assets/js/sdk-spotify-player.js') ?>"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <script src="<?= base_url('assets/js/spotify-web-api.js') ?>"></script>
     <!-- custom script -->
     <script src="<?= base_url('assets/js/script.js') ?>"></script>

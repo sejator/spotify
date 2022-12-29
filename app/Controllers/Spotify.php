@@ -40,6 +40,10 @@ class Spotify extends BaseController {
         return self::$api->getArtistTopTracks($id_artis, ['market' => 'ID']);
     }
 
+    public function detailAlbum($id) {
+        return self::$api->getAlbum($id);
+    }
+
     public function cari($keyword) {
         return self::$api->search($keyword, ['album', 'artist', 'playlist']);
     }

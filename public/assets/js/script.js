@@ -33,7 +33,9 @@ let ulang = true,
   suara_adzan,
   jeda_adzan,
   jeda_iklan,
-  player
+  player,
+  next_lagu = true,
+  current_track = null
 
 // inisialisasi SDK web spotify
 window.onSpotifyWebPlaybackSDKReady = () => {
@@ -44,6 +46,131 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     },
     volume: 0.5,
   })
+
+  // sdk spotify ready
+  player.addListener('ready', ({ device_id }) => {
+    cek_info = false
+    unblokElement('header')
+    console.log(`Spotify Web Player! Device ID`, device_id)
+    device.push(device_id)
+    Promise.resolve(spotifyApi.getMyDevices()).then((res) => {
+      $.each(res.devices, function (i, val) {
+        if (val.is_active) cek_info = true
+      })
+    })
+    Promise.resolve(spotifyApi.getMyRecentlyPlayedTracks()).then((res) => {
+      let track = res.items[0].track
+      let artisnya = ''
+      let link_artisnya = ''
+      for (let i = 0; i < track.artists.length; i++) {
+        artisnya = artisnya + track.artists[i].name
+        link_artisnya += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${track.artists[i].id}" title="Detail Artis"><small>${track.artists[i].name}</small></a>`
+        if (i != track.artists.length - 1) {
+          artisnya = artisnya + ', '
+          link_artisnya = link_artisnya + ' | '
+        }
+      }
+      $('#info-play').text(`${track.name} - ${artisnya}`)
+      $('#durasi').text(msToTime(track.duration_ms))
+      $('#info-gambar').attr('src', track.album.images[2].url)
+      $('#info-artis').html(link_artisnya)
+      $('#info-judul').html(
+        `<a href="javascript:void(0)" class="detail-album text-white" data-id="${track.album.id}" title="Detail Album"><small class="text-white">${track.name}</small></a>`
+      )
+
+      $.each(res.items, function (i, item) {
+        uris.push(item.track.uri)
+      })
+    })
+  })
+
+  // akun spotify masih free
+  player.on('account_error', ({ message }) => {
+    console.error('Failed to validate Spotify account', message)
+    blokElement('#modernSidebar, #load-data', '')
+    $('header').block({
+      message: `<h3>Akun spotify masih free!</h3>`,
+    })
+  })
+
+  // sdk spotify gagal dimuat
+  player.addListener('not_ready', ({ device_id }) => {
+    console.log('Device ID has gone offline', device_id)
+    $('header').block({
+      message: `<h4>Spotify gagal dimuat, silahkan refresh ulang dan pastikan terkoneksi internet!</h4>`,
+    })
+  })
+
+  // auto play di blok browser
+  player.addListener('autoplay_failed', () => {
+    console.log('Autoplay is not allowed by the browser autoplay rules')
+    $('header').block({
+      message: `<h4>Putar otomatis gagal, silahkan ganti dan refresh ulang!</h4>`,
+    })
+  })
+
+  // Token aksess tidak valid
+  player.on('authentication_error', ({ message }) => {
+    // console.error('Failed to authenticate', message)
+    valid_akun = false
+    cek_info = false
+  })
+
+  // Gagal memutar lagu
+  player.on('playback_error', ({ message }) => {
+    console.error('Failed to perform playback', message)
+    $('header').block({
+      message: `<h4>Gagal memutar lagu, silahkan refresh ulang!</h4>`,
+    })
+  })
+
+  // event ketika pemutar musik berubah
+  player.addListener('player_state_changed', (state) => {
+    // console.log(state)
+    if (state != null && current_track == null) {
+      if (
+        state.track_window.next_tracks != null &&
+        state.track_window.current_track != null
+      ) {
+        current_track = state.track_window.current_track.artists[0]
+      }
+    }
+    if (
+      state != null &&
+      state.repeat_mode == 0 &&
+      state.position == 0 &&
+      state.paused == true &&
+      state.track_window.next_tracks.length == 0 &&
+      state.track_window.current_track != null &&
+      next_lagu
+    ) {
+      next_lagu = false
+      let id_artis = current_track.uri.split(':')
+      Promise.resolve(spotifyApi.getArtistRelatedArtists(id_artis[2])).then(
+        (res) => {
+          let index = getRandomInt(res.artists.length)
+          let context = res.artists[index].uri
+          console.log(res.artists[index])
+          Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+            $.each(res.devices, function (i, val) {
+              if (val.is_active == true) {
+                Promise.resolve(
+                  spotifyApi.play({ device_id: val.id, context_uri: context })
+                ).then((result) => {
+                  console.log('Next cari lagu, play lagi')
+                  current_track = null
+                })
+              }
+            })
+          })
+        }
+      )
+    } else {
+      next_lagu = true
+    }
+  })
+
+  // proses koneksi web SDK
   player.connect()
 }
 
@@ -76,31 +203,64 @@ $(document).on('click', '.detail-artis', function (e) {
   getData('detail-artis', id)
 })
 
+$(document).on('click', '.detail-album', function (e) {
+  e.preventDefault()
+  let id = $(this).data('id')
+  getData('detail-album', id)
+})
+
 $(document).on('click', '.play', function () {
-  uris.unshift($(this).next().val())
   $('input[type=hidden][name=uris]')
     .map(function (_, el) {
       uris.push($(el).val())
     })
     .get()
 
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.play({ device_id: id, uris: uris })).then(
-      (res) => {
-        cek_info = true
-        console.log('play musik')
+  let index = uris.indexOf($(this).next().val())
+  Promise.resolve(spotifyApi.getMyDevices()).then((res) => {
+    cek_info = true
+    console.log('play musik')
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(
+          spotifyApi.play({
+            device_id: val.id,
+            uris: uris,
+            offset: { position: index },
+          })
+        ).then((ok) => {
+          uris = []
+        })
+      } else {
+        Promise.resolve(
+          spotifyApi.play({
+            device_id: val.id,
+            uris: uris,
+            offset: { position: index },
+          })
+        ).then((ok) => {
+          uris = []
+        })
       }
-    )
+    })
   })
 })
 
 $(document).on('click', '.play-album', function () {
-  device.forEach((id) => {
-    Promise.resolve(
-      spotifyApi.play({ device_id: id, context_uri: $(this).data('id') })
-    ).then((res) => {
-      cek_info = true
-      console.log('play musik')
+  let context = $(this).data('id')
+  Promise.resolve(spotifyApi.getMyDevices()).then((res) => {
+    cek_info = true
+    console.log('play musik')
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(
+          spotifyApi.play({ device_id: val.id, context_uri: context })
+        ).then((res) => {})
+      } else {
+        Promise.resolve(
+          spotifyApi.play({ device_id: val.id, context_uri: context })
+        ).then((res) => {})
+      }
     })
   })
 })
@@ -151,7 +311,7 @@ $(document).on('click', '.pause', function (e) {
 $(document).on('click', '.ganti-device', function () {
   Promise.resolve(spotifyApi.transferMyPlayback([$(this).data('id')])).then(
     (val) => {
-      console.log('device diganti', val)
+      console.log('device diganti', $(this).data('id'))
     }
   )
 })
@@ -200,9 +360,13 @@ $(document).on('click', '.delete-sound', function () {
 $(document).on('click', '.play-iklan', function () {
   blokElement('header')
   cek_info = false
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.pause({ device_id: id })).then((val) => {
-      console.log('pause music')
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(spotifyApi.pause({ device_id: val.id })).then((val) => {
+          console.log('pause music')
+        })
+      }
     })
   })
 
@@ -220,10 +384,14 @@ $(document).on('click', '.play-iklan', function () {
 $(document).on('click', '.stop-iklan', function () {
   unblokElement('header')
   iklan.pause()
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.play({ device_id: id })).then((val) => {
-      cek_info = true
-      console.log('play musik lagi')
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(spotifyApi.play({ device_id: val.id })).then((val) => {
+          cek_info = true
+          console.log('play musik lagi')
+        })
+      }
     })
   })
 })
@@ -297,13 +465,13 @@ function pageLoad() {
       suara_adzan = data.setting.suara_adzan
       jeda_adzan = data.setting.jeda_adzan
       jeda_iklan = data.setting.jeda_iklan
-      cek_info = data.setting.cek_info
+      cek_info = data.setting.cek_info == 1 ? true : false
 
       localStorage.setItem('kota', data.setting.kota)
       localStorage.setItem('suara_adzan', data.setting.suara_adzan)
       localStorage.setItem('jeda_adzan', data.setting.jeda_adzan)
       localStorage.setItem('jeda_iklan', data.setting.jeda_iklan)
-      localStorage.setItem('cek_info', data.setting.cek_info)
+      localStorage.setItem('cek_info', cek_info)
 
       if (data.setting.suara_adzan == 1) {
         div_adzan.text('Status Adzan Aktif')
@@ -551,65 +719,24 @@ function getData(page, param = '') {
   })
 }
 
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max)
+}
+
 // looping terus untuk ambil data dari spotify
 function loopForever() {
-  // sdk spotify ready
-  player.addListener('ready', ({ device_id }) => {
-    valid_akun = true
-    unblokElement('header')
-    console.log(`Spotify Music! Device ID`, device_id)
-    Promise.resolve(spotifyApi.getMyDevices()).then((value) => {
-      device = []
-      for (const el of value.devices) {
-        device.push(el.id)
-      }
-    })
-  })
-
-  // akun spotify masih free
-  player.on('account_error', ({ message }) => {
-    console.error('Failed to validate Spotify account', message)
-    blokElement('#modernSidebar, #load-data', '')
-    $('header').block({
-      message: `<h3>Akun spotify masih free!</h3>`,
-    })
-  })
-
-  // sdk spotify gagal dimuat
-  player.addListener('not_ready', ({ device_id }) => {
-    console.log('Device ID has gone offline', device_id)
-    $('header').block({
-      message: `<h4>Spotify gagal dimuat, silahkan refresh ulang dan pastikan terkoneksi internet!</h4>`,
-    })
-  })
-
-  // auto play di blok browser
-  player.addListener('autoplay_failed', () => {
-    console.log('Autoplay is not allowed by the browser autoplay rules')
-    $('header').block({
-      message: `<h4>Putar otomatis tidak diizinkan browser, silahkan ganti diizinkan!</h4>`,
-    })
-  })
-
-  // Token aksess tidak valid
-  player.on('authentication_error', ({ message }) => {
-    // console.error('Failed to authenticate', message)
-    valid_akun = false
-  })
-
-  // Gagal memutar lagu
-  player.on('playback_error', ({ message }) => {
-    console.error('Failed to perform playback', message)
-    $('header').block({
-      message: `<h4>Gagal memutar lagu, silahkan refresh ulang!</h4>`,
-    })
-  })
-
   // get info play musik
   if (cek_info == true) {
-    Promise.resolve(spotifyApi.getMyCurrentPlaybackState(null))
-      .then(function (val) {
-        getInformations(val)
+    Promise.resolve(spotifyApi.getMyCurrentPlaybackState())
+      .then((val) => {
+        if (val == '') {
+          // get device
+          Promise.resolve(spotifyApi.getMyDevices()).then((result) => {
+            console.log(result)
+          })
+        } else {
+          getInformations(val)
+        }
       })
       .catch((err) => {
         console.log(err)
@@ -630,6 +757,7 @@ function getInformations(response) {
     let deviceType = response.device.type
     let titleSong = response.item.name
     let artistSong = ''
+    let artis_link = ''
 
     position_ms = response.progress_ms // update posisi terakhir play
     set_repeat = response.repeat_state // update status repeate
@@ -649,7 +777,9 @@ function getInformations(response) {
       Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
         let device_aktif = ''
         let device_nonaktif = ''
+        device = []
         $.each(res.devices, function (i, val) {
+          device.push(val.id)
           if (val.is_active) {
             device_aktif += `<a class="dropdown-item" id="device_aktif">
                 <div class="">
@@ -690,7 +820,7 @@ function getInformations(response) {
       $('#play').show()
       $('#pause').hide()
       $('#info-play').text('Playlist not available!')
-      $('title').text('Spotify Music')
+      $('title').text('Spotify Web Player')
 
       // informasi device yang terhubung
       div_device
@@ -732,15 +862,23 @@ function getInformations(response) {
 
     if (currentlyPlayingType != 'ad') {
       for (let i = 0; i < response['item']['artists'].length; i++) {
+        artis_link += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${response.item.artists[i].id}" title="Detail Artis"><small>${response.item.artists[i].name}</small></a>`
         artistSong = artistSong + response['item']['artists'][i].name
         if (i != response['item']['artists'].length - 1) {
           artistSong = artistSong + ', '
+          artis_link = artis_link + ' | '
         }
       }
 
-      let info_musik = `${titleSong} - ${artistSong} (Device ~ ${deviceType})`
+      let info_musik = `${titleSong} ~ ${artistSong} (${deviceName})`
       $('#info-play').text(info_musik)
       $('title').text(info_musik)
+
+      $('#info-gambar').attr('src', response.item.album.images[2].url)
+      $('#info-artis').html(artis_link)
+      $('#info-judul').html(
+        `<a href="javascript:void(0)" class="detail-album text-white" data-id="${response.item.album.id}" title="Detail Album"><small class="text-white">${titleSong}</small></a>`
+      )
 
       if (progress) {
         $('#durasi').text(lenghtSongFormatted)
@@ -799,26 +937,30 @@ function playlistPlay() {
   $('#pause').show()
   console.log('play musik')
   cek_info = true
-  Promise.resolve(spotifyApi.getMyRecentlyPlayedTracks()).then((val) => {
-    let recent = val.items[0]
-    device.forEach((id) => {
-      if (position_ms == 0) {
-        uris.push(recent.track.uri)
-        Promise.resolve(spotifyApi.play({ device_id: id, uris: uris }))
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true && position_ms > 0) {
+        // play lagi
+        Promise.resolve(spotifyApi.play({ device_id: val.id }))
       } else {
-        Promise.resolve(spotifyApi.play({ device_id: id }))
+        // pertama kali di play
+        Promise.resolve(spotifyApi.play({ device_id: val.id, uris: uris }))
       }
     })
   })
 }
 
 function playlistPause() {
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.pause({ device_id: id })).then((val) => {
-      console.log('pause musik')
-      cek_info = false
-      $('#pause').hide()
-      $('#play').show()
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(spotifyApi.pause({ device_id: val.id })).then((val) => {
+          console.log('pause musik')
+          cek_info = false
+          $('#pause').hide()
+          $('#play').show()
+        })
+      }
     })
   })
 }
@@ -826,36 +968,46 @@ function playlistPause() {
 function playMusikLagi(timer) {
   ulang = true
   setTimeout(() => {
-    cek_info = true
-    unblokElement('body, header, .navbar')
-    device.forEach((id) => {
-      Promise.resolve(spotifyApi.play({ device_id: id }))
-    })
+    if (cek_info == false) {
+      unblokElement('body, header, .navbar')
+      Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+        cek_info = true
+        $.each(res.devices, function (i, val) {
+          if (val.is_active == true) {
+            Promise.resolve(spotifyApi.play({ device_id: val.id }))
+          }
+        })
+      })
+    }
   }, timer)
 }
 
 function playlistStop() {
   cek_info = false
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.pause({ device_id: id })).then((res) => {
-      console.log('stop musik')
-      position_ms = 0
-      $('#pause').hide()
-      $('#play').show()
-      $('#seek').text('00:00')
-      $('#durasi').text('00:00')
-      $('#progress').val(0).prop('max', 0)
-      $('#info-play').text('Playlist not available!')
-      $('title').text('Spotify Music')
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(spotifyApi.pause({ device_id: val.id })).then((res) => {
+          console.log('stop musik')
+          position_ms = 0
+          $('#pause').hide()
+          $('#play').show()
+          $('#seek').text('00:00')
+          $('#durasi').text('00:00')
+          $('#progress').val(0).prop('max', 0)
+          $('#info-play').text('Playlist not available!')
+          $('title').text('Spotify Web Player')
 
-      // informasi device yang terhubung
-      div_device
-        .parents('li')
-        .find('a')
-        .children('span')
-        .removeClass('text-warning')
-        .addClass('text-white')
-      div_device.html('')
+          // informasi device yang terhubung
+          div_device
+            .parents('li')
+            .find('a')
+            .children('span')
+            .removeClass('text-warning')
+            .addClass('text-white')
+          div_device.html('')
+        })
+      }
     })
   })
 }
@@ -870,15 +1022,19 @@ function playlistRandom() {
     random = true
   }
 
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.setShuffle(random, { device_id: id })).then(
-      (res) => {
-        console.log('random change', res)
-        setTimeout(() => {
-          status_random = true
-        }, 500)
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(
+          spotifyApi.setShuffle(random, { device_id: val.id })
+        ).then((res) => {
+          console.log('random change', res)
+          setTimeout(() => {
+            status_random = true
+          }, 500)
+        })
       }
-    )
+    })
   })
 }
 
@@ -901,31 +1057,45 @@ function playlistRepeat() {
       .addClass('fa-redo text-white')
   }
 
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.setRepeat(repeat, { device_id: id })).then(
-      (res) => {
-        setTimeout(() => {
-          status_repeat = true
-        }, 500)
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(
+          spotifyApi.setRepeat(repeat, { device_id: val.id })
+        ).then((res) => {
+          setTimeout(() => {
+            status_repeat = true
+          }, 500)
+        })
       }
-    )
+    })
   })
 }
 
 function playlistPrevious() {
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.skipToPrevious({ device_id: id })).then(
-      (res) => {
-        console.log('previous playlist')
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(spotifyApi.skipToPrevious({ device_id: val.id })).then(
+          (res) => {
+            console.log('previous playlist')
+          }
+        )
       }
-    )
+    })
   })
 }
 
 function playlistNext() {
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.skipToNext({ device_id: id })).then((res) => {
-      console.log('next playlist')
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(spotifyApi.skipToNext({ device_id: val.id })).then(
+          (res) => {
+            console.log('next playlist')
+          }
+        )
+      }
     })
   })
 }
@@ -936,12 +1106,18 @@ function onProgress(val) {
 }
 
 function setPositionTrack(time) {
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.seek(time, { device_id: id })).then((res) => {
-      console.log('posisi track')
-      setTimeout(() => {
-        progress = true
-      }, 500)
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(spotifyApi.seek(time, { device_id: val.id })).then(
+          (res) => {
+            console.log('posisi track')
+            setTimeout(() => {
+              progress = true
+            }, 500)
+          }
+        )
+      }
     })
   })
 }
@@ -955,12 +1131,16 @@ function jedaVolume() {
 function setVolume(volume) {
   set_volume = false
   $('#info-volume').text(`Volume ${volume}%`)
-  device.forEach((id) => {
-    Promise.resolve(spotifyApi.setVolume(volume, { device_id: id })).then(
-      (res) => {
-        console.log('volume update!')
+  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
+    $.each(res.devices, function (i, val) {
+      if (val.is_active == true) {
+        Promise.resolve(
+          spotifyApi.setVolume(volume, { device_id: val.id })
+        ).then((res) => {
+          console.log('volume update!')
+        })
       }
-    )
+    })
   })
 }
 
