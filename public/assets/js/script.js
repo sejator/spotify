@@ -11,168 +11,23 @@ const SITE_URL = $('body').data('url'),
 
 // default variabel
 let ulang = true,
-  progress = true,
-  set_volume = true,
   jadwal_sholat = null,
-  position_ms = 0,
-  set_repeat = 'off',
-  status_repeat = true,
-  set_random = false,
-  status_random = true,
-  valid_akun = true,
   uris = new Array(),
-  device = new Array(),
   sound = new Audio(),
   iklan = new Audio(),
   accessToken = readCookie('accessToken'),
   refreshToken = readCookie('refreshToken'),
   div_adzan = $('#info_adzan'),
-  div_device = $('#list-device'),
-  cek_info,
+  cek_info = false,
+  valid_akun = true,
+  status_device = false,
+  status_repeat = 0,
   kota,
   suara_adzan,
   jeda_adzan,
   jeda_iklan,
   player,
-  next_lagu = true,
-  current_track = null
-
-// inisialisasi SDK web spotify
-window.onSpotifyWebPlaybackSDKReady = () => {
-  player = new Spotify.Player({
-    name: 'Spotify Web Player',
-    getOAuthToken: (callback) => {
-      callback(accessToken)
-    },
-    volume: 0.5,
-  })
-
-  // sdk spotify ready
-  player.addListener('ready', ({ device_id }) => {
-    cek_info = false
-    unblokElement('header')
-    console.log(`Spotify Web Player! Device ID`, device_id)
-    device.push(device_id)
-    Promise.resolve(spotifyApi.getMyDevices()).then((res) => {
-      $.each(res.devices, function (i, val) {
-        if (val.is_active) cek_info = true
-      })
-    })
-    Promise.resolve(spotifyApi.getMyRecentlyPlayedTracks()).then((res) => {
-      let track = res.items[0].track
-      let artisnya = ''
-      let link_artisnya = ''
-      for (let i = 0; i < track.artists.length; i++) {
-        artisnya = artisnya + track.artists[i].name
-        link_artisnya += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${track.artists[i].id}" title="Detail Artis"><small>${track.artists[i].name}</small></a>`
-        if (i != track.artists.length - 1) {
-          artisnya = artisnya + ', '
-          link_artisnya = link_artisnya + ' | '
-        }
-      }
-      $('#info-play').text(`${track.name} - ${artisnya}`)
-      $('#durasi').text(msToTime(track.duration_ms))
-      $('#info-gambar').attr('src', track.album.images[2].url)
-      $('#info-artis').html(link_artisnya)
-      $('#info-judul').html(
-        `<a href="javascript:void(0)" class="detail-album text-white" data-id="${track.album.id}" title="Detail Album"><small class="text-white">${track.name}</small></a>`
-      )
-
-      $.each(res.items, function (i, item) {
-        uris.push(item.track.uri)
-      })
-    })
-  })
-
-  // akun spotify masih free
-  player.on('account_error', ({ message }) => {
-    console.error('Failed to validate Spotify account', message)
-    blokElement('#modernSidebar, #load-data', '')
-    $('header').block({
-      message: `<h3>Akun spotify masih free!</h3>`,
-    })
-  })
-
-  // sdk spotify gagal dimuat
-  player.addListener('not_ready', ({ device_id }) => {
-    console.log('Device ID has gone offline', device_id)
-    $('header').block({
-      message: `<h4>Spotify gagal dimuat, silahkan refresh ulang dan pastikan terkoneksi internet!</h4>`,
-    })
-  })
-
-  // auto play di blok browser
-  player.addListener('autoplay_failed', () => {
-    console.log('Autoplay is not allowed by the browser autoplay rules')
-    $('header').block({
-      message: `<h4>Putar otomatis gagal, silahkan ganti dan refresh ulang!</h4>`,
-    })
-  })
-
-  // Token aksess tidak valid
-  player.on('authentication_error', ({ message }) => {
-    // console.error('Failed to authenticate', message)
-    valid_akun = false
-    cek_info = false
-  })
-
-  // Gagal memutar lagu
-  player.on('playback_error', ({ message }) => {
-    console.error('Failed to perform playback', message)
-    $('header').block({
-      message: `<h4>Gagal memutar lagu, silahkan refresh ulang!</h4>`,
-    })
-  })
-
-  // event ketika pemutar musik berubah
-  player.addListener('player_state_changed', (state) => {
-    // console.log(state)
-    if (state != null && current_track == null) {
-      if (
-        state.track_window.next_tracks != null &&
-        state.track_window.current_track != null
-      ) {
-        current_track = state.track_window.current_track.artists[0]
-      }
-    }
-    if (
-      state != null &&
-      state.repeat_mode == 0 &&
-      state.position == 0 &&
-      state.paused == true &&
-      state.track_window.next_tracks.length == 0 &&
-      state.track_window.current_track != null &&
-      next_lagu
-    ) {
-      next_lagu = false
-      let id_artis = current_track.uri.split(':')
-      Promise.resolve(spotifyApi.getArtistRelatedArtists(id_artis[2])).then(
-        (res) => {
-          let index = getRandomInt(res.artists.length)
-          let context = res.artists[index].uri
-          console.log(res.artists[index])
-          Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-            $.each(res.devices, function (i, val) {
-              if (val.is_active == true) {
-                Promise.resolve(
-                  spotifyApi.play({ device_id: val.id, context_uri: context })
-                ).then((result) => {
-                  console.log('Next cari lagu, play lagi')
-                  current_track = null
-                })
-              }
-            })
-          })
-        }
-      )
-    } else {
-      next_lagu = true
-    }
-  })
-
-  // proses koneksi web SDK
-  player.connect()
-}
+  id_device
 
 $('#ganti-tema').on('click', function (e) {
   e.preventDefault()
@@ -207,62 +62,6 @@ $(document).on('click', '.detail-album', function (e) {
   e.preventDefault()
   let id = $(this).data('id')
   getData('detail-album', id)
-})
-
-$(document).on('click', '.play', function () {
-  $('input[type=hidden][name=uris]')
-    .map(function (_, el) {
-      uris.push($(el).val())
-    })
-    .get()
-
-  let index = uris.indexOf($(this).next().val())
-  Promise.resolve(spotifyApi.getMyDevices()).then((res) => {
-    cek_info = true
-    console.log('play musik')
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(
-          spotifyApi.play({
-            device_id: val.id,
-            uris: uris,
-            offset: { position: index },
-          })
-        ).then((ok) => {
-          uris = []
-        })
-      } else {
-        Promise.resolve(
-          spotifyApi.play({
-            device_id: val.id,
-            uris: uris,
-            offset: { position: index },
-          })
-        ).then((ok) => {
-          uris = []
-        })
-      }
-    })
-  })
-})
-
-$(document).on('click', '.play-album', function () {
-  let context = $(this).data('id')
-  Promise.resolve(spotifyApi.getMyDevices()).then((res) => {
-    cek_info = true
-    console.log('play musik')
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(
-          spotifyApi.play({ device_id: val.id, context_uri: context })
-        ).then((res) => {})
-      } else {
-        Promise.resolve(
-          spotifyApi.play({ device_id: val.id, context_uri: context })
-        ).then((res) => {})
-      }
-    })
-  })
 })
 
 $(document).on('click', '#btn-cari', function (e) {
@@ -300,22 +99,40 @@ $(document).on('click', '#btn-cari', function (e) {
   })
 })
 
-$(document).on('click', '.pause', function (e) {
-  $(this)
-    .children()
-    .removeClass('fas fa-pause text-warning')
-    .addClass('fas fa-play text-primary')
-  playlistPause()
+// kontrol musik
+$(document).on('click', '.play', function () {
+  $('input[type=hidden][name=uris]')
+    .map(function (_, el) {
+      uris.push($(el).val())
+    })
+    .get()
+
+  let index = uris.indexOf($(this).next().val())
+  Promise.resolve(
+    spotifyApi.play({
+      device_id: id_device,
+      uris: uris,
+      offset: { position: index },
+    })
+  ).then((ok) => {
+    uris = []
+    cek_info = true
+    status_device = true
+  })
 })
 
-$(document).on('click', '.ganti-device', function () {
-  Promise.resolve(spotifyApi.transferMyPlayback([$(this).data('id')])).then(
-    (val) => {
-      console.log('device diganti', $(this).data('id'))
-    }
-  )
+$(document).on('click', '.play-album', function () {
+  let context = $(this).data('id')
+  Promise.resolve(
+    spotifyApi.play({ device_id: id_device, context_uri: context })
+  ).then((res) => {
+    uris = []
+    cek_info = true
+    status_device = true
+  })
 })
 
+// tombol back khusus halaman admin
 $(document).on('click', '.btn-back', function (e) {
   e.preventDefault()
   let page = $(this).data('id') == '' ? 'home' : $(this).data('id')
@@ -358,42 +175,20 @@ $(document).on('click', '.delete-sound', function () {
 
 // control iklan admin
 $(document).on('click', '.play-iklan', function () {
+  pausePlaylist()
   blokElement('header')
-  cek_info = false
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(spotifyApi.pause({ device_id: val.id })).then((val) => {
-          console.log('pause music')
-        })
-      }
-    })
-  })
-
   // stop dulu iklan yg berjalan
   iklan.pause()
   iklan.src = $(this).data('file')
   setTimeout(() => {
-    $('#play').show()
-    $('#pause').hide()
     console.log('Iklan play')
     iklan.play()
   }, 2000)
 })
 
 $(document).on('click', '.stop-iklan', function () {
-  unblokElement('header')
   iklan.pause()
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(spotifyApi.play({ device_id: val.id })).then((val) => {
-          cek_info = true
-          console.log('play musik lagi')
-        })
-      }
-    })
-  })
+  resumePlaylist()
 })
 
 $(document).on('click', '.delete-iklan', function () {
@@ -449,7 +244,7 @@ function pageLoad() {
   // setting default pause hidden
   $('#pause').hide()
 
-  // setting default tema (dark)
+  // setting default tema
   localStorage.getItem('tema')
     ? gantiTema(localStorage.getItem('tema'))
     : gantiTema('dark')
@@ -465,13 +260,12 @@ function pageLoad() {
       suara_adzan = data.setting.suara_adzan
       jeda_adzan = data.setting.jeda_adzan
       jeda_iklan = data.setting.jeda_iklan
-      cek_info = data.setting.cek_info == 1 ? true : false
 
       localStorage.setItem('kota', data.setting.kota)
       localStorage.setItem('suara_adzan', data.setting.suara_adzan)
       localStorage.setItem('jeda_adzan', data.setting.jeda_adzan)
       localStorage.setItem('jeda_iklan', data.setting.jeda_iklan)
-      localStorage.setItem('cek_info', cek_info)
+      localStorage.setItem('cek_info', false)
 
       if (data.setting.suara_adzan == 1) {
         div_adzan.text('Status Adzan Aktif')
@@ -598,7 +392,8 @@ function tampilJam() {
 
   setTimeout(function () {
     tampilJam()
-    loopForever()
+    refreshAccessToken()
+    getInformations()
   }, 1000)
 }
 
@@ -639,12 +434,11 @@ function waktuAdzan(waktu) {
 function playAdzan() {
   console.log('Adzan play')
   ulang = false
-  cek_info = false
   blokElement('body, .navbar', '')
   $('header').block({
     message: '<h3>Adzan sedang berlangsung...</h3>',
   })
-  playlistPause()
+  pausePlaylist()
   if (sound != undefined) sound.pause()
   if (iklan != undefined) iklan.pause()
 
@@ -723,117 +517,239 @@ function getRandomInt(max) {
   return Math.floor(Math.random() * max)
 }
 
-// looping terus untuk ambil data dari spotify
-function loopForever() {
-  // get info play musik
-  if (cek_info == true) {
-    Promise.resolve(spotifyApi.getMyCurrentPlaybackState())
-      .then((val) => {
-        if (val == '') {
-          // get device
-          Promise.resolve(spotifyApi.getMyDevices()).then((result) => {
-            console.log(result)
-          })
-        } else {
-          getInformations(val)
-        }
+function refreshAccessToken() {
+  if (readCookie('refreshTime') == null && valid_akun == true) {
+    $.get(`${SITE_URL}/auth/refresh`, function (token) {
+      console.log('Token berhasil di refresh')
+      spotifyApi.setAccessToken(token)
+      // update token akses spotify
+      //   player._options.getOAuthToken = (updateToken) => {
+      //     updateToken(token)
+      //   }
+      player = new Spotify.Player({
+        name: 'Spotify Web Player',
+        getOAuthToken: (cb) => {
+          cb(token)
+        },
       })
-      .catch((err) => {
-        console.log(err)
-      })
+    })
   }
-  // auto refresh token expired
-  refreshAccessToken()
 }
 
-function getInformations(response) {
-  if (response != '') {
-    let currentlyPlayingType = response.currently_playing_type
-    let progressSong = response.progress_ms
-    let lenghtSong = response.item.duration_ms
-    let progressSongFormatted = msToTime(response.progress_ms)
-    let lenghtSongFormatted = msToTime(response.item.duration_ms)
-    let deviceName = response.device.name
-    let deviceType = response.device.type
-    let titleSong = response.item.name
-    let artistSong = ''
-    let artis_link = ''
+// inisialisasi SDK web spotify
+window.onSpotifyWebPlaybackSDKReady = () => {
+  player = new Spotify.Player({
+    name: 'Spotify Web Player',
+    getOAuthToken: (cb) => {
+      cb(accessToken)
+    },
+    volume: 0.5,
+  })
 
-    position_ms = response.progress_ms // update posisi terakhir play
-    set_repeat = response.repeat_state // update status repeate
-    set_random = response.shuffle_state // update status random/shuffle
+  // Player Ready
+  player.addListener('ready', ({ device_id }) => {
+    console.log('Ready with Device ID', device_id)
+    id_device = device_id
+    // setelah player siap, ganti ke device saat ini
+    Promise.resolve(
+      spotifyApi.transferMyPlayback([device_id], { play: false })
+    ).then((val) => {
+      unblokElement('header')
+      console.log('device diganti', device_id)
+    })
+  })
 
-    if (response.is_playing == true) {
-      $('#play').hide()
-      $('#pause').show()
+  // sdk spotify gagal dimuat
+  player.addListener('not_ready', ({ device_id }) => {
+    console.log('Device ID has gone offline', device_id)
+    $('header').block({
+      message: `<h4>Spotify gagal dimuat, silahkan refresh ulang dan pastikan terkoneksi internet!</h4>`,
+    })
+  })
 
-      // informasi device yang terhubung
-      div_device
-        .parents('li')
-        .find('a')
-        .children('span')
-        .removeClass('text-white')
-        .addClass('text-warning')
-      Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-        let device_aktif = ''
-        let device_nonaktif = ''
-        device = []
-        $.each(res.devices, function (i, val) {
-          device.push(val.id)
-          if (val.is_active) {
-            device_aktif += `<a class="dropdown-item" id="device_aktif">
-                <div class="">
-                    <div class="media">
-                        <div class="usr-img align-self-center mr-3">
-                            <img src="${SITE_URL}/assets/img/audio-wave.webp">
-                        </div>
-                        <div class="media-body">
-                            <div class="d-flex justify-content-between">
-                                <p class="meta-user-name mr-3 mb-0 text-success">Sedang Aktif</p>
-                            </div>
-                            <p class="message-text mb-0 text-success">${val.name}</p>
-                        </div>
-                    </div>
-                </div>
-            </a>`
-          } else {
-            device_nonaktif += `<a class="dropdown-item ganti-device" data-id="${val.id}">
-                <div class="">
-                    <div class="media">
-                        <div class="usr-img align-self-center mr-3">
-                            <span class="icon flaticon-computer-5"></span>
-                        </div>
-                        <div class="media-body">
-                            <div class="d-flex justify-content-between">
-                                <p class="meta-user-name mr-3 mb-0">${val.name}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </a>`
+  // akun spotify masih free
+  player.on('account_error', ({ message }) => {
+    console.error('Failed to validate Spotify account', message)
+    blokElement('#modernSidebar, #load-data', '')
+    $('header').block({
+      message: `<h3>Akun spotify masih free!</h3>`,
+    })
+  })
+
+  // auto play di blok browser
+  player.addListener('autoplay_failed', () => {
+    console.log('Autoplay is not allowed by the browser autoplay rules')
+    $('header').block({
+      message: `<h4>Putar otomatis gagal, silahkan ganti dan refresh ulang!</h4>`,
+    })
+  })
+
+  // Token aksess tidak valid
+  player.on('authentication_error', ({ message }) => {
+    // console.error('Failed to authenticate', message)
+    valid_akun = false
+    cek_info = false
+    $('header').block({
+      message: '<h4>Token aksess tidak valid!</h4>',
+    })
+  })
+
+  // Gagal memutar lagu
+  player.on('playback_error', ({ message }) => {
+    console.error('Failed to perform playback', message)
+    $('header').block({
+      message: `<h4>Gagal memutar lagu, silahkan refresh ulang!</h4>`,
+    })
+  })
+
+  // event ketika pemutar musik berubah
+  player.addListener('player_state_changed', (state) => {
+    // ambil informasi musik yang terakhir di putar
+    let track = null
+    if (state == null) {
+      Promise.resolve(spotifyApi.getMyRecentlyPlayedTracks()).then((result) => {
+        //   console.log(result.items)
+        track = result.items[0].track
+        console.log('track', track)
+        let artisnya = ''
+        let link_artisnya = ''
+        for (let i = 0; i < track.artists.length; i++) {
+          artisnya = artisnya + track.artists[i].name
+          link_artisnya += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${track.artists[i].id}" title="Detail Artis"><small>${track.artists[i].name}</small></a>`
+          if (i != track.artists.length - 1) {
+            artisnya = artisnya + ', '
+            link_artisnya = link_artisnya + ' | '
           }
-        })
-        div_device.html(device_aktif)
-        $('#device_aktif').parent().append(device_nonaktif)
+        }
+        $('#info-play').text(`${track.name} - ${artisnya}`)
+        $('#durasi').text(msToTime(track.duration_ms))
+        $('#progress').prop('max', track.duration_ms)
+
+        $('#info-gambar').prop('src', track.album.images[2].url)
+        $('#info-artis').html(link_artisnya)
+        $('#info-judul').html(
+          `<a href="javascript:void(0)" class="detail-album text-white" data-id="${track.album.id}" title="Detail Album"><small class="text-white">${track.name}</small></a>`
+        )
       })
     } else {
-      $('#play').show()
-      $('#pause').hide()
-      $('#info-play').text('Playlist not available!')
-      $('title').text('Spotify Web Player')
+      track = state.track_window.current_track
+      let artisnya = ''
+      let link_artisnya = ''
+      for (let i = 0; i < track.artists.length; i++) {
+        artisnya = artisnya + track.artists[i].name
+        link_artisnya += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${track.artists[i].uri}" title="Detail Artis"><small>${track.artists[i].name}</small></a>`
+        if (i != track.artists.length - 1) {
+          artisnya = artisnya + ', '
+          link_artisnya = link_artisnya + ' | '
+        }
+      }
+      $('#info-play').text(`${track.name} - ${artisnya}`)
+      $('#durasi').text(msToTime(track.duration_ms))
+      $('#progress').prop('max', track.duration_ms)
 
-      // informasi device yang terhubung
-      div_device
-        .parents('li')
-        .find('a')
-        .children('span')
-        .removeClass('text-warning')
-        .addClass('text-white')
-      div_device.html('')
+      $('#info-gambar').prop('src', track.album.images[1].url)
+      $('#info-artis').html(link_artisnya)
+      $('#info-judul').html(
+        `<a href="javascript:void(0)" class="detail-album text-white" data-id="${track.album.uri}" title="Detail Album"><small class="text-white">${track.name}</small></a>`
+      )
     }
 
-    if (status_random) {
-      if (response.shuffle_state == true) {
+    console.log(state)
+    // cari lagu referensi setelah playlist next kosong
+    if (
+      state.position >= state.duration &&
+      state.repeat_mode == 0 &&
+      state.track_window.next_tracks.length == 0
+    ) {
+      let current_track = state.track_window.current_track.artists[0]
+      let id_artis = current_track.uri.split(':')
+      Promise.resolve(spotifyApi.getArtistRelatedArtists(id_artis[2])).then(
+        (res) => {
+          let index = getRandomInt(3)
+          let context = res.artists[index].uri
+          console.log(res.artists[index])
+
+          setTimeout(() => {
+            Promise.resolve(
+              spotifyApi.play({ device_id: id_device, context_uri: context })
+            )
+              .then((result) => {
+                console.log('Next cari lagu, play lagi')
+              })
+              .catch((error) => {
+                //   console.log(error)
+                Promise.resolve(
+                  spotifyApi
+                    .play({ device_id: id_device, context_uri: context })
+                    .then((result) => {
+                      console.log('Next cari lagu, play lagi')
+                    })
+                )
+              })
+          }, 1000)
+        }
+      )
+    }
+  })
+
+  // mulai koneksi ke device
+  player.connect().then((success) => {
+    if (success) {
+      console.log('Koneksi sukses!')
+    }
+  })
+}
+
+function getInformations() {
+  if (cek_info) {
+    player.getCurrentState().then((state) => {
+      if (!state) {
+        cek_info = false
+        $('#animasi').addClass('d-none')
+        console.error('User is not playing music through the Web Playback SDK')
+        return
+      }
+      let current = state.track_window.current_track
+      let artistSong = '',
+        artis_link = ''
+
+      for (let i = 0; i < current.artists.length; i++) {
+        artis_link += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${current.artists[i].uri}" title="Detail Artis"><small>${current.artists[i].name}</small></a>`
+        artistSong = artistSong + current.artists[i].name
+        if (i != current.artists.length - 1) {
+          artistSong = artistSong + ', '
+          artis_link = artis_link + ' | '
+        }
+      }
+
+      let info_musik = `${current.name} ~ ${artistSong} (${player._options.name})`
+      $('#info-play').text(info_musik)
+      $('title').text(info_musik)
+
+      $('#info-gambar').prop('src', current.album.images[2].url)
+      $('#info-artis').html(artis_link)
+      $('#info-judul').html(
+        `<a href="javascript:void(0)" class="detail-album text-white" data-id="${current.album.uri}" title="Detail Album"><small class="text-white">${current.name}</small></a>`
+      )
+
+      $('#durasi').text(msToTime(state.duration))
+      $('#seek').text(msToTime(state.position))
+      $('#progress').val(state.position).prop('max', state.duration)
+      $('#animasi').removeClass('d-none')
+
+      if (status_device) {
+        status_device = true
+        $('#play').hide()
+        $('#pause').show()
+        $('#animasi').removeClass('d-none')
+      } else {
+        status_device = false
+        $('#play').show()
+        $('#pause').hide()
+        $('#animasi').addClass('d-none')
+      }
+
+      if (state.shuffle == true) {
         $('#random')
           .addClass('text-warning')
           .attr('data-original-title', 'Random Off')
@@ -842,126 +758,89 @@ function getInformations(response) {
           .removeClass('text-warning')
           .attr('data-original-title', 'Random On')
       }
-    }
 
-    if (status_repeat) {
-      if (response.repeat_state == 'track') {
-        $('#repeat')
-          .removeClass('fa-redo fa-recycle text-white text-warning')
-          .addClass('fa-retweet text-warning')
-      } else if (response.repeat_state == 'context') {
-        $('#repeat')
-          .removeClass('fa-redo fa-retweet text-white text-warning')
-          .addClass('fa-recycle text-warning')
-      } else {
-        $('#repeat')
-          .removeClass('fa-recycle fa-retweet text-white text-warning')
-          .addClass('fa-redo text-white')
-      }
-    }
+      //   if (state.repeat_mode == 1) {
+      //     $('#repeat')
+      //       .removeClass('fa-redo fa-retweet text-white text-warning')
+      //       .addClass('fa-recycle text-warning')
+      //   } else if (state.repeat_mode == 2) {
+      //     $('#repeat')
+      //       .removeClass('fa-redo fa-recycle text-white text-warning')
+      //       .addClass('fa-retweet text-warning')
+      //   } else {
+      //     $('#repeat')
+      //       .removeClass('fa-recycle fa-retweet text-white text-warning')
+      //       .addClass('fa-redo text-white')
+      //   }
 
-    if (currentlyPlayingType != 'ad') {
-      for (let i = 0; i < response['item']['artists'].length; i++) {
-        artis_link += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${response.item.artists[i].id}" title="Detail Artis"><small>${response.item.artists[i].name}</small></a>`
-        artistSong = artistSong + response['item']['artists'][i].name
-        if (i != response['item']['artists'].length - 1) {
-          artistSong = artistSong + ', '
-          artis_link = artis_link + ' | '
-        }
-      }
+      // tandai lagu yang sedang diputar
+      $('input[type=hidden][name=uris]')
+        .map(function (_, el) {
+          if ($(el).val() == current.uri && status_device) {
+            $(el).parents('tr').addClass('musik-play')
+            $(el).prev().removeClass('play').addClass('pause')
 
-      let info_musik = `${titleSong} ~ ${artistSong} (${deviceName})`
-      $('#info-play').text(info_musik)
-      $('title').text(info_musik)
+            $(el)
+              .prev()
+              .children()
+              .removeClass('fas fa-play text-primary')
+              .addClass('fas fa-pause text-warning')
+          } else {
+            $(el).parents('tr').removeClass('musik-play')
+            $(el).prev().removeClass('pause').addClass('play')
 
-      $('#info-gambar').attr('src', response.item.album.images[2].url)
-      $('#info-artis').html(artis_link)
-      $('#info-judul').html(
-        `<a href="javascript:void(0)" class="detail-album text-white" data-id="${response.item.album.id}" title="Detail Album"><small class="text-white">${titleSong}</small></a>`
-      )
-
-      if (progress) {
-        $('#durasi').text(lenghtSongFormatted)
-        $('#seek').text(progressSongFormatted)
-        $('#progress').val(progressSong).prop('max', lenghtSong)
-      }
-
-      if (set_volume) {
-        $('#info-volume').text(`Volume ${response.device.volume_percent}%`)
-        $('#volume').val(response.device.volume_percent)
-      }
-    }
-
-    // tandai lagu yang sedang diputar
-    $('input[type=hidden][name=uris]')
-      .map(function (_, el) {
-        if ($(el).val() == response.item.uri && response.is_playing == true) {
-          $(el).parents('tr').addClass('musik-play')
-          $(el).prev().removeClass('play').addClass('pause')
-
-          $(el)
-            .prev()
-            .children()
-            .removeClass('fas fa-play text-primary')
-            .addClass('fas fa-pause text-warning')
-        } else {
-          $(el).parents('tr').removeClass('musik-play')
-          $(el).prev().removeClass('pause').addClass('play')
-
-          $(el)
-            .prev()
-            .children()
-            .removeClass('fas fa-pause text-warning')
-            .addClass('fas fa-play text-primary')
-        }
-      })
-      .get()
-  }
-}
-
-function refreshAccessToken() {
-  if (readCookie('refreshTime') == null && valid_akun == true) {
-    $.get(`${SITE_URL}/auth/refresh`, function (token) {
-      console.log('Token berhasil di refresh')
-      spotifyApi.setAccessToken(token)
-      // update token akses spotify
-      player._options.getOAuthToken = (updateToken) => {
-        updateToken(token)
-      }
+            $(el)
+              .prev()
+              .children()
+              .removeClass('fas fa-pause text-warning')
+              .addClass('fas fa-play text-primary')
+          }
+        })
+        .get()
     })
   }
 }
 
-function playlistPlay() {
-  $('#play').hide()
-  $('#pause').show()
-  console.log('play musik')
-  cek_info = true
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true && position_ms > 0) {
-        // play lagi
-        Promise.resolve(spotifyApi.play({ device_id: val.id }))
-      } else {
-        // pertama kali di play
-        Promise.resolve(spotifyApi.play({ device_id: val.id, uris: uris }))
-      }
-    })
+function toglePlaylist() {
+  player.activateElement()
+  player.togglePlay().then(() => {
+    console.log('Toggled playback!')
+    if ($('#pause').is(':hidden')) {
+      cek_info = true
+      status_device = true
+      $('#play').hide()
+      $('#pause').show()
+      $('#animasi').removeClass('d-none')
+    } else {
+      cek_info = false
+      status_device = false
+      $('#play').show()
+      $('#pause').hide()
+      $('#animasi').addClass('d-none')
+    }
   })
 }
 
-function playlistPause() {
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(spotifyApi.pause({ device_id: val.id })).then((val) => {
-          console.log('pause musik')
-          cek_info = false
-          $('#pause').hide()
-          $('#play').show()
-        })
-      }
-    })
+function resumePlaylist() {
+  cek_info = true
+  status_device = true
+  unblokElement('header')
+  $('#play').hide()
+  $('#pause').show()
+  $('#animasi').removeClass('d-none')
+  player.resume().then(() => {
+    console.log('Resumed!')
+  })
+}
+
+function pausePlaylist() {
+  cek_info = false
+  status_device = false
+  $('#play').show()
+  $('#pause').hide()
+  $('#animasi').addClass('d-none')
+  player.pause().then(() => {
+    console.log('Paused!')
   })
 }
 
@@ -970,177 +849,75 @@ function playMusikLagi(timer) {
   setTimeout(() => {
     if (cek_info == false) {
       unblokElement('body, header, .navbar')
-      Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-        cek_info = true
-        $.each(res.devices, function (i, val) {
-          if (val.is_active == true) {
-            Promise.resolve(spotifyApi.play({ device_id: val.id }))
-          }
-        })
+      cek_info = true
+      status_device = true
+      player.resume().then(() => {
+        console.log('Resumed!')
       })
     }
   }, timer)
 }
 
-function playlistStop() {
-  cek_info = false
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(spotifyApi.pause({ device_id: val.id })).then((res) => {
-          console.log('stop musik')
-          position_ms = 0
-          $('#pause').hide()
-          $('#play').show()
-          $('#seek').text('00:00')
-          $('#durasi').text('00:00')
-          $('#progress').val(0).prop('max', 0)
-          $('#info-play').text('Playlist not available!')
-          $('title').text('Spotify Web Player')
-
-          // informasi device yang terhubung
-          div_device
-            .parents('li')
-            .find('a')
-            .children('span')
-            .removeClass('text-warning')
-            .addClass('text-white')
-          div_device.html('')
-        })
-      }
-    })
-  })
-}
-
-function playlistRandom() {
-  status_random = false
-  if (set_random) {
-    random = false
-    $('#random').removeClass('text-warning')
-  } else {
-    $('#random').addClass('text-warning')
-    random = true
-  }
-
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(
-          spotifyApi.setShuffle(random, { device_id: val.id })
-        ).then((res) => {
-          console.log('random change', res)
-          setTimeout(() => {
-            status_random = true
-          }, 500)
-        })
-      }
-    })
-  })
-}
-
-function playlistRepeat() {
-  status_repeat = false
-  if (set_repeat == 'off') {
-    repeat = 'context'
-    $('#repeat')
-      .removeClass('fa-redo fa-retweet text-white text-warning')
-      .addClass('fa-recycle text-warning')
-  } else if (set_repeat == 'context') {
-    repeat = 'track'
-    $('#repeat')
-      .removeClass('fa-redo fa-recycle text-white text-warning')
-      .addClass('fa-retweet text-warning')
-  } else {
-    repeat = 'off'
-    $('#repeat')
-      .removeClass('fa-recycle fa-retweet text-white text-warning')
-      .addClass('fa-redo text-white')
-  }
-
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(
-          spotifyApi.setRepeat(repeat, { device_id: val.id })
-        ).then((res) => {
-          setTimeout(() => {
-            status_repeat = true
-          }, 500)
-        })
-      }
-    })
-  })
-}
-
 function playlistPrevious() {
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(spotifyApi.skipToPrevious({ device_id: val.id })).then(
-          (res) => {
-            console.log('previous playlist')
-          }
-        )
-      }
-    })
+  player.previousTrack().then(() => {
+    cek_info = true
+    console.log('Set to previous track!')
   })
 }
 
 function playlistNext() {
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(spotifyApi.skipToNext({ device_id: val.id })).then(
-          (res) => {
-            console.log('next playlist')
-          }
-        )
-      }
-    })
+  player.nextTrack().then(() => {
+    cek_info = true
+    console.log('Skipped to next track!')
   })
 }
 
-function onProgress(val) {
-  progress = false
-  $('#seek').text(msToTime(val))
+function playlistRandom() {
+  if ($('#random').hasClass('text-warning')) {
+    random = false
+    setTimeout(() => {
+      $('#random').removeClass('text-warning')
+    }, 1000)
+  } else {
+    setTimeout(() => {
+      $('#random').addClass('text-warning')
+    }, 1000)
+    random = true
+  }
+  Promise.resolve(spotifyApi.setShuffle(random, { device_id: id_device })).then(
+    (res) => {
+      console.log('random change')
+    }
+  )
+}
+
+function playlistRepeat() {
+  if (status_repeat == 0) {
+    repeat = 'context'
+  } else if (status_repeat == 1) {
+    repeat = 'track'
+  } else {
+    repeat = 'off'
+  }
+  //   Promise.resolve(spotifyApi.setRepeat(repeat)).then((result) => {
+  //     console.log(result)
+  //   })
+}
+
+function setProgres(time) {
+  $('#seek').text(msToTime(time))
 }
 
 function setPositionTrack(time) {
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(spotifyApi.seek(time, { device_id: val.id })).then(
-          (res) => {
-            console.log('posisi track')
-            setTimeout(() => {
-              progress = true
-            }, 500)
-          }
-        )
-      }
-    })
+  player.seek(time).then(() => {
+    console.log('Changed position!')
   })
 }
 
-function jedaVolume() {
-  setTimeout(() => {
-    set_volume = true
-  }, 800)
-}
-
 function setVolume(volume) {
-  set_volume = false
   $('#info-volume').text(`Volume ${volume}%`)
-  Promise.resolve(spotifyApi.getMyDevices()).then(function (res) {
-    $.each(res.devices, function (i, val) {
-      if (val.is_active == true) {
-        Promise.resolve(
-          spotifyApi.setVolume(volume, { device_id: val.id })
-        ).then((res) => {
-          console.log('volume update!')
-        })
-      }
-    })
+  player.setVolume(volume / 100).then(() => {
+    console.log('Volume updated!')
   })
 }
 

@@ -1,10 +1,14 @@
 #content {
   margin-left: 70px;
-  margin-top: 95px;
+  margin-top: 120px;
+}
+
+.desktop-nav {
+height: 95px;
 }
 
 .modernSidebar-nav {
-  top: 75px !important;
+  top: 95px !important;
   width: 70px !important;
 }
 

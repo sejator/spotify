@@ -38,65 +38,62 @@
     <!--  BEGIN NAVBAR  -->
     <header class="desktop-nav header navbar fixed-top">
         <div class="nav-logo">
-            <a href="javascript:void(0);" class="nav-link sidebarCollapse d-inline-block mr-sm-5" data-placement="bottom">
+            <a href="javascript:void(0);" class="nav-link sidebarCollapse d-inline-block" data-placement="bottom">
                 <i class="flaticon-menu-line-3"></i>
             </a>
         </div>
 
         <ul class="navbar-nav flex-row mr-auto">
-            <li class="nav-item mr-lg-4 align-self-center">
+            <li class="nav-item mx-3 align-self-center">
                 <a href="javascript:void(0);" class="nav-link text-white">
                     <i id="random" class="fas fa-random bs-tooltip" data-original-title="Random On" data-toggle="tooltip" data-placement="top" onclick="playlistRandom()"></i>
                 </a>
             </li>
-            <li class="nav-item ml-3 mr-lg-4 align-self-center">
+            <li class="nav-item mx-3 align-self-center">
                 <a href="javascript:void(0);" class="nav-link">
                     <i id="repeat" class="fas fa-redo text-white bs-tooltip" data-original-title="Repeat" data-toggle="tooltip" data-placement="top" onclick="playlistRepeat()"></i>
                 </a>
             </li>
-            <li class="nav-item ml-3 mr-lg-4 align-self-center">
-                <a href="javascript:void(0);" class="nav-link text-white">
-                    <i id="stop" class="fas fa-stop bs-tooltip" data-original-title="Stop" data-toggle="tooltip" data-placement="top" onclick="playlistStop()"></i>
-                </a>
-            </li>
-            <li class="nav-item ml-3 mr-lg-4 align-self-center">
+            <li class="nav-item mx-3 align-self-center">
                 <a href="javascript:void(0);" class="nav-link text-white">
                     <i id="prev" class="fas fa-step-backward bs-tooltip" data-original-title="Previous" data-toggle="tooltip" data-placement="top" onclick="playlistPrevious()"></i>
                 </a>
             </li>
-            <li class="nav-item d-flex ml-3 mr-lg-4 align-self-center">
+            <li class="nav-item d-flex mx-3 align-self-center">
                 <a href="javascript:void(0);" class="nav-link text-white">
-                    <i id="play" class="fas fa-play bs-tooltip" data-original-title="Play" data-toggle="tooltip" data-placement="top" onclick="playlistPlay()"></i>
+                    <i id="play" class="fas fa-play bs-tooltip" data-original-title="Play" data-toggle="tooltip" data-placement="top" onclick="toglePlaylist()"></i>
                 </a>
                 <a href="javascript:void(0);" class="nav-link text-white">
-                    <i id="pause" class="fas fa-pause text-warning bs-tooltip" data-original-title="Pause" data-toggle="tooltip" data-placement="top" onclick="playlistPause()"></i>
+                    <i id="pause" class="fas fa-pause text-warning bs-tooltip" data-original-title="Pause" data-toggle="tooltip" data-placement="top" onclick="toglePlaylist()"></i>
                 </a>
             </li>
-            <li class="nav-item ml-3 mr-lg-4 align-self-center">
+            <li class="nav-item mx-3 align-self-center">
                 <a href="javascript:void(0);" class="nav-link text-white">
                     <i id="next" class="fas fa-step-forward bs-tooltip" data-original-title="Next" data-toggle="tooltip" data-placement="top" onclick="playlistNext()"></i>
                 </a>
             </li>
         </ul>
 
-        <ul class="navbar-nav flex-row mr-auto" style="width: 50%;">
-            <li class="nav-item mr-lg-2 align-self-center">
+        <ul class="navbar-nav flex-row mr-auto" style="width: 35%;">
+            <li class="nav-item ml-3 align-self-center">
                 <span class="text-white" id="seek">00:00</span>
             </li>
-            <li class="nav-item align-self-center" style="width: 70%;">
+            <li class="nav-item mx-3 align-self-center" style="width: 70%;">
                 <div class="text-white">
                     <marquee scrolldelay="450" id="info-play" onmouseover="this.stop();" onmouseout="this.start();">Playlist not available!</marquee>
                 </div>
-                <input type="range" id="progress" style="width: 100%;" min="0" max="" value="0" oninput="onProgress(this.value)" onchange="setPositionTrack(this.value)">
+                <input type="range" id="progress" style="width: 100%;" min="0" max="" value="0" onchange="setPositionTrack(this.value)" oninput="setProgres(this.value)">
             </li>
-            <li class="nav-item ml-lg-2 align-self-center">
+            <li class="nav-item align-self-center">
                 <span class="text-white" id="durasi">00:00</span>
             </li>
+        </ul>
 
-            <li class="nav-item ml-lg-3 mr-2 align-self-center">
-                <img id="info-gambar" style="max-height: 40px;" src="">
+        <ul class="navbar-nav flex-row mr-auto" style="width: 20%;">
+            <li class="nav-item mr-2 align-self-center">
+                <img id="info-gambar" style="max-height: 64px;" src="">
             </li>
-            <li class="nav-item align-self-center" style="width: 25%;">
+            <li class="nav-item align-self-center">
                 <div>
                     <div id="info-judul"></div>
                     <div id="info-artis"></div>
@@ -104,18 +101,16 @@
             </li>
         </ul>
 
-        <ul class="navbar-nav flex-row ml-auto" style="width: 15%;">
-            <li class="nav-item dropdown message-dropdown d-sm-block d-none align-self-center">
-                <a href="javascript:void(0);" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <span class="icon flaticon-computer-line text-white"></span>
-                </a>
-                <div class="dropdown-menu position-absolute p-0 eq-animated eq-fadeInUp">
-                    <div id="list-device"></div>
-                </div>
+        <ul class="navbar-nav flex-row ml-auto" style="width: 5%;">
+            <li class="nav-item align-self-center">
+                <img id="animasi" class="d-none" style="max-height: 45px;" src="<?= base_url('assets/img/audio-wave.webp') ?>"></div>
             </li>
-            <li class="nav-item ml-3 align-self-center" style="width: 100%;">
+        </ul>
+
+        <ul class="navbar-nav flex-row ml-auto" style="width: 15%;">
+            <li class="nav-item align-self-center" style="width: 100%;">
                 <div class="text-white" id="info-volume">Volume 50%</div>
-                <input type="range" id="volume" style="width: 100%;" min="0" max="100" value="50" onchange="jedaVolume()" oninput="setVolume(this.value)">
+                <input type="range" id="volume" style="width: 100%;" min="0" max="100" value="50" oninput="setVolume(this.value)">
             </li>
             <li class="nav-item ml-3 mr-3 align-self-center">
                 <a title="Ganti Tema" href="javascript:void(0);" id="ganti-tema" class="nav-link text-white"></a>
