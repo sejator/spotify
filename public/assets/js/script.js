@@ -15,19 +15,16 @@ let ulang = true,
   uris = new Array(),
   sound = new Audio(),
   iklan = new Audio(),
-  accessToken = readCookie('accessToken'),
-  refreshToken = readCookie('refreshToken'),
   div_adzan = $('#info_adzan'),
   cek_info = false,
   valid_akun = true,
-  status_device = false,
   status_repeat = 0,
+  id_device = null,
   kota,
   suara_adzan,
   jeda_adzan,
   jeda_iklan,
-  player,
-  id_device
+  player
 
 $('#ganti-tema').on('click', function (e) {
   e.preventDefault()
@@ -117,7 +114,6 @@ $(document).on('click', '.play', function () {
   ).then((ok) => {
     uris = []
     cek_info = true
-    status_device = true
   })
 })
 
@@ -128,7 +124,6 @@ $(document).on('click', '.play-album', function () {
   ).then((res) => {
     uris = []
     cek_info = true
-    status_device = true
   })
 })
 
@@ -239,7 +234,7 @@ function pageLoad() {
   App.init()
   tampilJam()
   tampilJadwalSholat()
-  spotifyApi.setAccessToken(accessToken)
+  spotifyApi.setAccessToken(readCookie('accessToken'))
 
   // setting default pause hidden
   $('#pause').hide()
@@ -276,7 +271,7 @@ function pageLoad() {
 
   // ambil data
   let page =
-    refreshToken == null
+    readCookie('refreshToken') == null
       ? (window.location.hash = 'auth')
       : (window.location.hash = 'home')
   getData(page)
@@ -522,16 +517,10 @@ function refreshAccessToken() {
     $.get(`${SITE_URL}/auth/refresh`, function (token) {
       console.log('Token berhasil di refresh')
       spotifyApi.setAccessToken(token)
-      // update token akses spotify
-      //   player._options.getOAuthToken = (updateToken) => {
+      //   update token akses spotify
+      //   player._options.getOAuthToken((updateToken) => {
       //     updateToken(token)
-      //   }
-      player = new Spotify.Player({
-        name: 'Spotify Web Player',
-        getOAuthToken: (cb) => {
-          cb(token)
-        },
-      })
+      //   })
     })
   }
 }
@@ -540,8 +529,9 @@ function refreshAccessToken() {
 window.onSpotifyWebPlaybackSDKReady = () => {
   player = new Spotify.Player({
     name: 'Spotify Web Player',
-    getOAuthToken: (cb) => {
-      cb(accessToken)
+    getOAuthToken: (callback) => {
+      let setToken = readCookie('accessToken')
+      callback(setToken)
     },
     volume: 0.5,
   })
@@ -655,6 +645,15 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     }
 
     console.log(state)
+    if (state.paused) {
+      $('#play').show()
+      $('#pause').hide()
+      $('#animasi').addClass('d-none')
+    } else {
+      $('#play').hide()
+      $('#pause').show()
+      $('#animasi').removeClass('d-none')
+    }
     // cari lagu referensi setelah playlist next kosong
     if (
       state.position >= state.duration &&
@@ -705,7 +704,7 @@ function getInformations() {
     player.getCurrentState().then((state) => {
       if (!state) {
         cek_info = false
-        $('#animasi').addClass('d-none')
+        // $('#animasi').addClass('d-none')
         console.error('User is not playing music through the Web Playback SDK')
         return
       }
@@ -726,7 +725,7 @@ function getInformations() {
       $('#info-play').text(info_musik)
       $('title').text(info_musik)
 
-      $('#info-gambar').prop('src', current.album.images[2].url)
+      $('#info-gambar').prop('src', current.album.images[1].url)
       $('#info-artis').html(artis_link)
       $('#info-judul').html(
         `<a href="javascript:void(0)" class="detail-album text-white" data-id="${current.album.uri}" title="Detail Album"><small class="text-white">${current.name}</small></a>`
@@ -737,16 +736,15 @@ function getInformations() {
       $('#progress').val(state.position).prop('max', state.duration)
       $('#animasi').removeClass('d-none')
 
-      if (status_device) {
-        status_device = true
-        $('#play').hide()
-        $('#pause').show()
-        $('#animasi').removeClass('d-none')
-      } else {
-        status_device = false
+      //   console.log(state)
+      if (state.paused) {
         $('#play').show()
         $('#pause').hide()
         $('#animasi').addClass('d-none')
+      } else {
+        $('#play').hide()
+        $('#pause').show()
+        $('#animasi').removeClass('d-none')
       }
 
       if (state.shuffle == true) {
@@ -776,7 +774,7 @@ function getInformations() {
       // tandai lagu yang sedang diputar
       $('input[type=hidden][name=uris]')
         .map(function (_, el) {
-          if ($(el).val() == current.uri && status_device) {
+          if ($(el).val() == current.uri && !state.paused) {
             $(el).parents('tr').addClass('musik-play')
             $(el).prev().removeClass('play').addClass('pause')
 
@@ -807,13 +805,11 @@ function toglePlaylist() {
     console.log('Toggled playback!')
     if ($('#pause').is(':hidden')) {
       cek_info = true
-      status_device = true
       $('#play').hide()
       $('#pause').show()
       $('#animasi').removeClass('d-none')
     } else {
       cek_info = false
-      status_device = false
       $('#play').show()
       $('#pause').hide()
       $('#animasi').addClass('d-none')
@@ -823,7 +819,6 @@ function toglePlaylist() {
 
 function resumePlaylist() {
   cek_info = true
-  status_device = true
   unblokElement('header')
   $('#play').hide()
   $('#pause').show()
@@ -835,7 +830,6 @@ function resumePlaylist() {
 
 function pausePlaylist() {
   cek_info = false
-  status_device = false
   $('#play').show()
   $('#pause').hide()
   $('#animasi').addClass('d-none')
@@ -850,7 +844,6 @@ function playMusikLagi(timer) {
     if (cek_info == false) {
       unblokElement('body, header, .navbar')
       cek_info = true
-      status_device = true
       player.resume().then(() => {
         console.log('Resumed!')
       })
