@@ -12,7 +12,7 @@ class Home extends BaseController {
     private $session, $setting, $clientID, $secretKey, $redirect;
 
     public function __construct() {
-        helper(['cookie', 'text']);
+        helper(['cookie', 'text', 'cache']);
         $this->clientID  = env('SPOTIFY_CLIENT_ID');
         $this->secretKey = env('SPOTIFY_CLIENT_SECRET');
         $this->redirect  = env('SPOTIFY_REDIRECT_URI');
@@ -22,12 +22,7 @@ class Home extends BaseController {
     }
 
     public function index() {
-        $data = [
-            'backsound' => $this->setting->getBacksound(),
-            'iklan'     => $this->setting->getIklan(),
-        ];
-
-        return view('index', $data);
+        return view('index');
     }
 
     public function datatable_iklan() {
@@ -85,14 +80,22 @@ class Home extends BaseController {
             if ($refreshToken == null) {
                 return view('auth');
             } else {
-                $setting          = $this->setting->getSetting();
-                $data['setting']  = $setting;
-                $data['playlist'] = Services::spotify()->playlist();
-                if ($setting->pencarian == 1) {
-                    $data['top'] = Services::spotify()->topArtis();
+                $cache = cache('data_home');
+                if (!$cache) {
+                    $setting          = $this->setting->getSetting();
+                    $data['setting']  = $setting;
+                    $data['playlist'] = Services::spotify()->playlist();
+                    if ($setting->pencarian == 1) {
+                        $data['top'] = Services::spotify()->topArtis();
+                    }
+                    // simpan cache untuk 2 jam
+                    cache()->save('data_home', $data, 7200);
+                    $result = $data;
+                } else {
+                    $result = cache()->get('data_home');
                 }
 
-                return view('home', $data);
+                return view('home', $result);
             }
             break;
 
@@ -116,7 +119,7 @@ class Home extends BaseController {
                 'playlist' => Services::spotify()->artisTrack($artis->id),
             ]);
             break;
-            
+
         case 'detail-album':
             return view('spotify/detail_album', [
                 'album' => Services::spotify()->detailAlbum($param),
@@ -192,6 +195,7 @@ class Home extends BaseController {
 
     public function setting() {
         $cek = $this->setting->updateSetting($this->request->getPost());
+        cache()->delete('data_home');
 
         return $this->response->setJSON(['status' => $cek, 'data' => json_encode($this->request->getPost())]);
     }
