@@ -91,7 +91,9 @@
 
         <ul class="navbar-nav flex-row mr-auto" style="width: 20%;">
             <li class="nav-item mr-2 align-self-center">
-                <img id="info-gambar" style="max-height: 64px;" src="">
+                <a class="detail-album" href="javascript:void(0)" id="info-gambar" data-id="" title="Detail Album">
+                    <img style="max-height: 64px;" src="">
+                </a>
             </li>
             <li class="nav-item align-self-center">
                 <div>

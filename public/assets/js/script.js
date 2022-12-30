@@ -595,34 +595,8 @@ window.onSpotifyWebPlaybackSDKReady = () => {
   // event ketika pemutar musik berubah
   player.addListener('player_state_changed', (state) => {
     // ambil informasi musik yang terakhir di putar
-    let track = null
-    if (state == null) {
-      Promise.resolve(spotifyApi.getMyRecentlyPlayedTracks()).then((result) => {
-        //   console.log(result.items)
-        track = result.items[0].track
-        console.log('track', track)
-        let artisnya = ''
-        let link_artisnya = ''
-        for (let i = 0; i < track.artists.length; i++) {
-          artisnya = artisnya + track.artists[i].name
-          link_artisnya += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${track.artists[i].id}" title="Detail Artis"><small>${track.artists[i].name}</small></a>`
-          if (i != track.artists.length - 1) {
-            artisnya = artisnya + ', '
-            link_artisnya = link_artisnya + ' | '
-          }
-        }
-        $('#info-play').text(`${track.name} - ${artisnya}`)
-        $('#durasi').text(msToTime(track.duration_ms))
-        $('#progress').prop('max', track.duration_ms)
-
-        $('#info-gambar').prop('src', track.album.images[2].url)
-        $('#info-artis').html(link_artisnya)
-        $('#info-judul').html(
-          `<a href="javascript:void(0)" class="detail-album text-white" data-id="${track.album.id}" title="Detail Album"><small class="text-white">${track.name}</small></a>`
-        )
-      })
-    } else {
-      track = state.track_window.current_track
+    if (state != null) {
+      let track = state.track_window.current_track
       let artisnya = ''
       let link_artisnya = ''
       for (let i = 0; i < track.artists.length; i++) {
@@ -635,9 +609,14 @@ window.onSpotifyWebPlaybackSDKReady = () => {
       }
       $('#info-play').text(`${track.name} - ${artisnya}`)
       $('#durasi').text(msToTime(track.duration_ms))
-      $('#progress').prop('max', track.duration_ms)
+      $('#progress').prop('max', track.duration_ms).val(track.position)
+      $('#seek').text(msToTime(state.position))
 
-      $('#info-gambar').prop('src', track.album.images[1].url)
+      $('#info-gambar')
+        .data('id', track.album.uri)
+        .children()
+        .prop('src', track.album.images[1].url)
+
       $('#info-artis').html(link_artisnya)
       $('#info-judul').html(
         `<a href="javascript:void(0)" class="detail-album text-white" data-id="${track.album.uri}" title="Detail Album"><small class="text-white">${track.name}</small></a>`
@@ -725,7 +704,11 @@ function getInformations() {
       $('#info-play').text(info_musik)
       $('title').text(info_musik)
 
-      $('#info-gambar').prop('src', current.album.images[1].url)
+      //   $('#info-gambar').prop('src', current.album.images[1].url)
+      $('#info-gambar')
+        .data('id', current.album.uri)
+        .children()
+        .prop('src', current.album.images[1].url)
       $('#info-artis').html(artis_link)
       $('#info-judul').html(
         `<a href="javascript:void(0)" class="detail-album text-white" data-id="${current.album.uri}" title="Detail Album"><small class="text-white">${current.name}</small></a>`
