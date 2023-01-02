@@ -514,13 +514,18 @@ function getRandomInt(max) {
 
 function refreshAccessToken() {
   if (readCookie('refreshTime') == null && valid_akun == true) {
-    $.get(`${SITE_URL}/auth/refresh`, function (token) {
-      console.log('Token berhasil di refresh')
-      spotifyApi.setAccessToken(token)
-      //   update token akses spotify
-      //   player._options.getOAuthToken((updateToken) => {
-      //     updateToken(token)
-      //   })
+    $.ajax({
+      url: `${SITE_URL}/auth/refresh`,
+      success: (token) => {
+        console.log('Token berhasil di refresh')
+        spotifyApi.setAccessToken(token)
+      },
+      error: (xhr, status, message) => {
+        console.log(message)
+        valid_akun = false
+        cek_info = false
+        getData('auth')
+      },
     })
   }
 }
@@ -544,7 +549,6 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     Promise.resolve(
       spotifyApi.transferMyPlayback([device_id], { play: false })
     ).then((val) => {
-      unblokElement('header')
       console.log('device diganti', device_id)
     })
   })
@@ -570,7 +574,7 @@ window.onSpotifyWebPlaybackSDKReady = () => {
   player.addListener('autoplay_failed', () => {
     console.log('Autoplay is not allowed by the browser autoplay rules')
     $('header').block({
-      message: `<h4>Putar otomatis gagal, silahkan ganti dan refresh ulang!</h4>`,
+      message: `<h4>Putar otomatis gagal, silahkan ganti dan refresh ulang (tekan CTRL + R)</h4>`,
     })
   })
 
@@ -580,15 +584,17 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     valid_akun = false
     cek_info = false
     $('header').block({
-      message: '<h4>Token aksess tidak valid!</h4>',
+      message: '<h4>Token aksess tidak valid, silahkan login dulu!</h4>',
     })
   })
 
   // Gagal memutar lagu
   player.on('playback_error', ({ message }) => {
     console.error('Failed to perform playback', message)
+    valid_akun = false
+    cek_info = false
     $('header').block({
-      message: `<h4>Gagal memutar lagu, silahkan refresh ulang!</h4>`,
+      message: `<h4>Gagal memutar lagu, silahkan refresh ulang (tekan CTRL + R).</h4>`,
     })
   })
 
@@ -601,29 +607,40 @@ window.onSpotifyWebPlaybackSDKReady = () => {
       let link_artisnya = ''
       for (let i = 0; i < track.artists.length; i++) {
         artisnya = artisnya + track.artists[i].name
-        link_artisnya += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${track.artists[i].uri}" title="Detail Artis"><small>${track.artists[i].name}</small></a>`
+        link_artisnya += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${track.artists[i].uri}">${track.artists[i].name}</a>`
         if (i != track.artists.length - 1) {
           artisnya = artisnya + ', '
-          link_artisnya = link_artisnya + ' | '
+          link_artisnya = link_artisnya + ', '
         }
       }
-      $('#info-play').text(`${track.name} - ${artisnya}`)
-      $('#durasi').text(msToTime(track.duration_ms))
-      $('#progress').prop('max', track.duration_ms).val(track.position)
-      $('#seek').text(msToTime(state.position))
+
+      setTimeout(() => {
+        $('#durasi').text(msToTime(track.duration_ms))
+        $('#progress').prop('max', track.duration_ms).val(state.position)
+        $('#seek').text(msToTime(state.position))
+        unblokElement('header')
+      }, 1000)
 
       $('#info-gambar')
         .data('id', track.album.uri)
         .children()
         .prop('src', track.album.images[1].url)
 
-      $('#info-artis').html(link_artisnya)
-      $('#info-judul').html(
-        `<a href="javascript:void(0)" class="detail-album text-white" data-id="${track.album.uri}" title="Detail Album"><small class="text-white">${track.name}</small></a>`
+      let info_musik = `${track.name} ~ ${artisnya} (${player._options.name})`
+      $('title').text(info_musik)
+      if (artisnya.length > 25) {
+        $('#info-artis').html(
+          `<marquee style="font-size: 0.8rem;" scrolldelay="450" id="info-play" onmouseover="this.stop();" onmouseout="this.start();">${link_artisnya}</marquee>`
+        )
+      } else {
+        $('#info-artis').html(link_artisnya)
+      }
+      $('#info-play').html(
+        `<a href="javascript:void(0)" class="detail-album text-white" data-id="${track.album.uri}">${track.name}</a>`
       )
     }
 
-    console.log(state)
+    // console.log(state)
     if (state.paused) {
       $('#play').show()
       $('#pause').hide()
@@ -635,8 +652,9 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     }
     // cari lagu referensi setelah playlist next kosong
     if (
-      state.position >= state.duration &&
+      state.position == 0 &&
       state.repeat_mode == 0 &&
+      state.paused &&
       state.track_window.next_tracks.length == 0
     ) {
       let current_track = state.track_window.current_track.artists[0]
@@ -645,8 +663,6 @@ window.onSpotifyWebPlaybackSDKReady = () => {
         (res) => {
           let index = getRandomInt(3)
           let context = res.artists[index].uri
-          console.log(res.artists[index])
-
           setTimeout(() => {
             Promise.resolve(
               spotifyApi.play({ device_id: id_device, context_uri: context })
@@ -683,76 +699,12 @@ function getInformations() {
     player.getCurrentState().then((state) => {
       if (!state) {
         cek_info = false
-        // $('#animasi').addClass('d-none')
         console.error('User is not playing music through the Web Playback SDK')
         return
       }
       let current = state.track_window.current_track
-      let artistSong = '',
-        artis_link = ''
-
-      for (let i = 0; i < current.artists.length; i++) {
-        artis_link += `<a href="javascript:void(0)" class="detail-artis text-white" data-id="${current.artists[i].uri}" title="Detail Artis"><small>${current.artists[i].name}</small></a>`
-        artistSong = artistSong + current.artists[i].name
-        if (i != current.artists.length - 1) {
-          artistSong = artistSong + ', '
-          artis_link = artis_link + ' | '
-        }
-      }
-
-      let info_musik = `${current.name} ~ ${artistSong} (${player._options.name})`
-      $('#info-play').text(info_musik)
-      $('title').text(info_musik)
-
-      //   $('#info-gambar').prop('src', current.album.images[1].url)
-      $('#info-gambar')
-        .data('id', current.album.uri)
-        .children()
-        .prop('src', current.album.images[1].url)
-      $('#info-artis').html(artis_link)
-      $('#info-judul').html(
-        `<a href="javascript:void(0)" class="detail-album text-white" data-id="${current.album.uri}" title="Detail Album"><small class="text-white">${current.name}</small></a>`
-      )
-
-      $('#durasi').text(msToTime(state.duration))
       $('#seek').text(msToTime(state.position))
       $('#progress').val(state.position).prop('max', state.duration)
-      $('#animasi').removeClass('d-none')
-
-      //   console.log(state)
-      if (state.paused) {
-        $('#play').show()
-        $('#pause').hide()
-        $('#animasi').addClass('d-none')
-      } else {
-        $('#play').hide()
-        $('#pause').show()
-        $('#animasi').removeClass('d-none')
-      }
-
-      if (state.shuffle == true) {
-        $('#random')
-          .addClass('text-warning')
-          .attr('data-original-title', 'Random Off')
-      } else {
-        $('#random')
-          .removeClass('text-warning')
-          .attr('data-original-title', 'Random On')
-      }
-
-      //   if (state.repeat_mode == 1) {
-      //     $('#repeat')
-      //       .removeClass('fa-redo fa-retweet text-white text-warning')
-      //       .addClass('fa-recycle text-warning')
-      //   } else if (state.repeat_mode == 2) {
-      //     $('#repeat')
-      //       .removeClass('fa-redo fa-recycle text-white text-warning')
-      //       .addClass('fa-retweet text-warning')
-      //   } else {
-      //     $('#repeat')
-      //       .removeClass('fa-recycle fa-retweet text-white text-warning')
-      //       .addClass('fa-redo text-white')
-      //   }
 
       // tandai lagu yang sedang diputar
       $('input[type=hidden][name=uris]')
