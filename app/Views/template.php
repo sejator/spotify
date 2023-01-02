@@ -44,7 +44,7 @@
         </div>
 
         <ul class="navbar-nav flex-row mr-auto">
-            <li class="nav-item mx-3 align-self-center">
+            <li class="nav-item ml-5 mr-3 align-self-center">
                 <a href="javascript:void(0);" class="nav-link text-white">
                     <i id="random" class="fas fa-random bs-tooltip" data-original-title="Random On" data-toggle="tooltip" data-placement="top" onclick="playlistRandom()"></i>
                 </a>
@@ -79,9 +79,7 @@
                 <span class="text-white" id="seek">00:00</span>
             </li>
             <li class="nav-item mx-3 align-self-center" style="width: 70%;">
-                <div class="text-white">
-                    <marquee scrolldelay="450" id="info-play" onmouseover="this.stop();" onmouseout="this.start();">Playlist not available!</marquee>
-                </div>
+                <div class="text-center text-white" id="info-play">Playlist not available!</div>
                 <input type="range" id="progress" style="width: 100%;" min="0" max="" value="0" onchange="setPositionTrack(this.value)" oninput="setProgres(this.value)">
             </li>
             <li class="nav-item align-self-center">
@@ -89,21 +87,20 @@
             </li>
         </ul>
 
-        <ul class="navbar-nav flex-row mr-auto" style="width: 20%;">
+        <ul class="navbar-nav flex-row ml-auto pr-3" style="width: 20%;">
             <li class="nav-item mr-2 align-self-center">
-                <a class="detail-album" href="javascript:void(0)" id="info-gambar" data-id="" title="Detail Album">
+                <a class="detail-album" href="javascript:void(0)" id="info-gambar" data-id="">
                     <img style="max-height: 64px;" src="">
                 </a>
             </li>
             <li class="nav-item align-self-center">
                 <div>
-                    <div id="info-judul"></div>
                     <div id="info-artis"></div>
                 </div>
             </li>
         </ul>
 
-        <ul class="navbar-nav flex-row ml-auto" style="width: 5%;">
+        <ul class="navbar-nav flex-row mr-auto" style="width: 5%;">
             <li class="nav-item align-self-center">
                 <img id="animasi" class="d-none" style="max-height: 45px;" src="<?= base_url('assets/img/audio-wave.webp') ?>"></div>
             </li>
@@ -169,7 +166,8 @@
             <div class="row">
                 <div id="toggle-grid" class="col-xl-7 col-md-6 col-sm-6 col-12 text-sm-left text-center">
                     <ul class="list-inline links" style="margin-left: 5rem;">
-                        <li class="list-inline-item">&copy; 2022 Spotify Music. All Rights Reserved.</li>
+                        <li class="list-inline-item">&copy; <?= date('Y'); ?> Spotify Web Player. All Rights Reserved.</li>
+                        <li class="list-inline-item"><?= APP_VERSI; ?></li>
                     </ul>
                 </div>
                 <div class="col-xl-5 col-md-6 col-sm-6 col-12">

@@ -44,7 +44,7 @@
                             </td>
                             <td><?= $item->album->name ?></td>
                             <td>
-                                <a title="Play" class="play" href="javascript:void(0);" data-id="<?= $item->album->uri; ?>"><i class="fas fa-play text-primary fs-20"></i></a>
+                                <a title="Play" class="play" href="javascript:void(0);" data-id="<?= $item->uri; ?>"><i class="fas fa-play text-primary fs-20"></i></a>
                                 <input name="uris" type="hidden" value="<?= $item->uri ?>">
                             </td>
                         </tr>

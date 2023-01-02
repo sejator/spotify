@@ -4,7 +4,10 @@
 }
 
 .desktop-nav {
-height: 95px;
+  height: 95px;
+}
+.desktop-nav.header {
+  padding: 0;
 }
 
 .modernSidebar-nav {
@@ -64,7 +67,7 @@ table.table-custom > tbody > tr > th {
 }
 
 .musik-play {
-  background-color: #5A5A5A;
+  background-color: #5a5a5a;
 }
 
 .waktu {
@@ -72,7 +75,11 @@ table.table-custom > tbody > tr > th {
   font-weight: bold;
 }
 .desktop-nav.header .navbar-nav .message-dropdown .dropdown-menu {
-    top: 50px !important;
+  top: 50px !important;
+}
+
+#info-play a:hover, #info-artis a:hover {
+    text-decoration: underline;
 }
 
 .icon-container {
@@ -106,9 +113,9 @@ table.table-custom > tbody > tr > th {
 .icon-container [class*='flaticon-']:hover + span[class='icon-name'] {
   color: #3862f5;
 }
-.checkbox-lg .custom-control-label::before, 
+.checkbox-lg .custom-control-label::before,
 .checkbox-lg .custom-control-label::after {
-  top: .8rem;
+  top: 0.8rem;
   width: 1.55rem;
   height: 1.55rem;
 }

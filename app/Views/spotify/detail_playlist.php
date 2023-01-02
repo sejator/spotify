@@ -23,10 +23,14 @@
                             </td>
                             <td><?= $item->track->album->name; ?></td>
                             <td>
-                                <a href="javascript:void(0);" class="play" title="Play Musik" data-uri="<?= $item->track->uri ?>">
-                                    <i class="fas fa-play text-primary fs-20"></i>
-                                </a>
-                                <input name="uris" type="hidden" value="<?= $item->track->uri ?>">
+                                <?php if (count($item->track->available_markets) > 0) : ?>
+                                    <a href="javascript:void(0);" class="play" title="Play Musik" data-uri="<?= $item->track->uri ?>">
+                                        <i class="fas fa-play text-primary fs-20"></i>
+                                    </a>
+                                    <input name="uris" type="hidden" value="<?= $item->track->uri ?>">
+                                    <?php else:?>
+                                        <i class="fas fa-ban text-muted fs-20"></i>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
