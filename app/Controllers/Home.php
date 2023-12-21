@@ -7,11 +7,13 @@ use Config\Services;
 use SpotifyWebAPI\Session;
 use SpotifyWebAPI\SpotifyWebAPI;
 
-class Home extends BaseController {
+class Home extends BaseController
+{
 
     private $session, $setting, $clientID, $secretKey, $redirect;
 
-    public function __construct() {
+    public function __construct()
+    {
         helper(['cookie', 'text', 'cache']);
         $this->clientID  = env('SPOTIFY_CLIENT_ID');
         $this->secretKey = env('SPOTIFY_CLIENT_SECRET');
@@ -21,11 +23,13 @@ class Home extends BaseController {
         $this->_setAccessToken();
     }
 
-    public function index() {
+    public function index()
+    {
         return view('index');
     }
 
-    public function datatable_iklan() {
+    public function datatable_iklan()
+    {
         $param = [
             'draw'   => $this->request->getGet('draw', TRUE),
             'start'  => $this->request->getGet('start', TRUE),
@@ -45,7 +49,8 @@ class Home extends BaseController {
         return $this->response->setJSON($data);
     }
 
-    public function datatable_sound() {
+    public function datatable_sound()
+    {
         $param = [
             'draw'   => $this->request->getGet('draw', TRUE),
             'start'  => $this->request->getGet('start', TRUE),
@@ -65,142 +70,155 @@ class Home extends BaseController {
         return $this->response->setJSON($data);
     }
 
-    public function setDefault() {
+    public function setDefault()
+    {
         return $this->response->setJSON(['setting' => $this->setting->getSetting()]);
     }
 
-    public function getData() {
-        $page         = $this->request->getGet('page', FILTER_SANITIZE_SPECIAL_CHARS);
-        $param        = $this->request->getGet('param');
-        $refreshToken = get_cookie('refreshToken');
+    public function getData()
+    {
+        try {
+            $page         = $this->request->getGet('page', FILTER_SANITIZE_SPECIAL_CHARS);
+            $param        = $this->request->getGet('param');
+            $refreshToken = get_cookie('refreshToken');
 
-        switch ($page) {
-        case 'auth':
-        case 'home':
-            if ($refreshToken == null) {
-                return view('auth');
-            } else {
-                $cache = cache('data_home');
-                if (!$cache) {
-                    $setting          = $this->setting->getSetting();
-                    $data['setting']  = $setting;
-                    $data['playlist'] = Services::spotify()->playlist();
-                    if ($setting->pencarian == 1) {
-                        $data['top'] = Services::spotify()->topArtis();
+            switch ($page) {
+                case 'auth':
+                case 'home':
+                    if ($refreshToken == null) {
+                        return view('auth');
+                    } else {
+                        $cache = cache('data_home');
+                        if (!$cache) {
+                            $setting          = $this->setting->getSetting();
+                            $data['setting']  = $setting;
+                            $data['playlist'] = Services::spotify()->playlist();
+                            if ($setting->pencarian == 1) {
+                                $data['top'] = Services::spotify()->topArtis();
+                            }
+                            // simpan cache untuk 2 jam
+                            cache()->save('data_home', $data, 7200);
+                            $result = $data;
+                        } else {
+                            $result = cache()->get('data_home');
+                        }
+
+                        return view('home', $result);
                     }
-                    // simpan cache untuk 2 jam
-                    cache()->save('data_home', $data, 7200);
-                    $result = $data;
-                } else {
-                    $result = cache()->get('data_home');
-                }
-
-                return view('home', $result);
-            }
-            break;
-
-        case 'detail':
-            return view('spotify/detail_playlist', [
-                'playlist' => Services::spotify()->detailPlaylist($param),
-            ]);
-            break;
-
-        case 'pencarian':
-            return view('spotify/detail_pencarian', [
-                'pencarian' => Services::spotify()->cari($param),
-            ]);
-            break;
-
-        case 'detail-artis':
-            $artis = Services::spotify()->detailArtis($param);
-
-            return view('spotify/detail_artis', [
-                'artis'    => $artis,
-                'playlist' => Services::spotify()->artisTrack($artis->id),
-            ]);
-            break;
-
-        case 'detail-album':
-            return view('spotify/detail_album', [
-                'album' => Services::spotify()->detailAlbum($param),
-            ]);
-            break;
-
-        default:
-            // halaman khusus untuk admin
-            if (session()->get('login')) {
-                switch ($page) {
-                case 'setting':
-                    return view('setting/index');
                     break;
 
-                case 'default':
-                    return view('setting/default', [
-                        'setting' => $this->setting->getSetting(),
-                        'lokasi'  => $this->setting->getLokasi(),
+                case 'detail':
+                    return view('spotify/detail_playlist', [
+                        'playlist' => Services::spotify()->detailPlaylist($param),
                     ]);
                     break;
 
-                case 'backsound':
-                    return view('setting/backsound', [
-                        'backsound' => $this->setting->getBacksound(),
+                case 'pencarian':
+                    return view('spotify/detail_pencarian', [
+                        'pencarian' => Services::spotify()->cari($param),
                     ]);
                     break;
 
-                case 'iklan':
-                    return view('setting/iklan', [
-                        'iklan' => $this->setting->getIklan(),
+                case 'detail-artis':
+                    $artis = Services::spotify()->detailArtis($param);
+
+                    return view('spotify/detail_artis', [
+                        'artis'    => $artis,
+                        'playlist' => Services::spotify()->artisTrack($artis->id),
+                    ]);
+                    break;
+
+                case 'detail-album':
+                    return view('spotify/detail_album', [
+                        'album' => Services::spotify()->detailAlbum($param),
                     ]);
                     break;
 
                 default:
-                    # silent
+                    // halaman khusus untuk admin
+                    if (session()->get('login')) {
+                        switch ($page) {
+                            case 'setting':
+                                return view('setting/index');
+                                break;
+
+                            case 'default':
+                                return view('setting/default', [
+                                    'setting' => $this->setting->getSetting(),
+                                    'lokasi'  => $this->setting->getLokasi(),
+                                ]);
+                                break;
+
+                            case 'backsound':
+                                return view('setting/backsound', [
+                                    'backsound' => $this->setting->getBacksound(),
+                                ]);
+                                break;
+
+                            case 'iklan':
+                                return view('setting/iklan', [
+                                    'iklan' => $this->setting->getIklan(),
+                                ]);
+                                break;
+
+                            default:
+                                # silent
+                                break;
+                        }
+                    } else {
+                        // login dulu
+                        return view('login');
+                    }
                     break;
-                }
-            } else {
-                // login dulu
-                return view('login');
             }
-            break;
+        } catch (\Throwable $th) {
+            //throw $th;
         }
     }
 
-    public function login() {
-        $username = $this->request->getPost('username', FILTER_SANITIZE_SPECIAL_CHARS);
-        $password = $this->request->getPost('password');
-        $cek      = $this->setting->validasiUser($username);
+    public function login()
+    {
+        try {
+            $username = $this->request->getPost('username', FILTER_SANITIZE_SPECIAL_CHARS);
+            $password = $this->request->getPost('password');
+            $cek      = $this->setting->validasiUser($username);
 
-        if (empty($cek)) {
-            $respon = [
-                'status' => false,
-                'pesan'  => 'Login gagal',
-            ];
-        } else {
-            if (password_verify($password, $cek->password)) {
-                session()->set('login', true);
-                $respon = [
-                    'status' => true,
-                    'pesan'  => 'Login berhasil',
-                ];
-            } else {
+            if (empty($cek)) {
                 $respon = [
                     'status' => false,
                     'pesan'  => 'Login gagal',
                 ];
+            } else {
+                if (password_verify($password, $cek->password)) {
+                    session()->set('login', true);
+                    $respon = [
+                        'status' => true,
+                        'pesan'  => 'Login berhasil',
+                    ];
+                } else {
+                    $respon = [
+                        'status' => false,
+                        'pesan'  => 'Login gagal',
+                    ];
+                }
             }
-        }
 
-        return $this->response->setJSON($respon);
+            return $this->response->setJSON($respon);
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
     }
 
-    public function setting() {
+    public function setting()
+    {
         $cek = $this->setting->updateSetting($this->request->getPost());
         cache()->delete('data_home');
 
         return $this->response->setJSON(['status' => $cek, 'data' => json_encode($this->request->getPost())]);
     }
 
-    public function uploadBacksound() {
+    public function uploadBacksound()
+    {
         $rules = [
             'backsound' => 'uploaded[backsound]|max_size[backsound,500000]|ext_in[backsound,wav,mp3,aac,ogg]',
         ];
@@ -230,10 +248,10 @@ class Home extends BaseController {
         }
 
         return $this->response->setJSON($respon);
-
     }
 
-    public function hapusBacksound() {
+    public function hapusBacksound()
+    {
         $id  = $this->request->getPost('id');
         $cek = $this->setting->getBacksound($id);
 
@@ -247,7 +265,8 @@ class Home extends BaseController {
         }
     }
 
-    public function uploadIklan() {
+    public function uploadIklan()
+    {
         $rules = [
             'iklan' => 'uploaded[iklan]|max_size[iklan,500000]|ext_in[iklan,wav,mp3,aac,ogg]',
         ];
@@ -277,10 +296,10 @@ class Home extends BaseController {
         }
 
         return $this->response->setJSON($respon);
-
     }
 
-    public function hapusIklan() {
+    public function hapusIklan()
+    {
         $id  = $this->request->getPost('id');
         $cek = $this->setting->getIklan($id);
 
@@ -294,75 +313,79 @@ class Home extends BaseController {
         }
     }
 
-    public function accessToken() {
-        $state   = $this->session->generateState();
-        $options = [
-            'scope' => [
-                'user-read-email',
-                'user-read-private',
-                'user-modify-playback-state',
-                'user-read-playback-state',
-                'user-read-currently-playing',
-                'user-read-recently-played',
-                'user-read-playback-position',
-                'user-top-read',
-                'user-library-read',
-                'playlist-modify-public',
-                'playlist-read-private',
-                'playlist-modify-private',
-                'streaming',
-            ],
-            'state' => $state,
-        ];
-        // setcookie('state', $state, time() + (3600 * 365), '/');
-        // aktif 1 bulan
-        set_cookie('state', $state, (3600 * 24 * 30), '', '/', '', false, false);
-        $respon = [
-            'status'   => true,
-            'callback' => $this->session->getAuthorizeUrl($options),
-        ];
+    public function accessToken()
+    {
+        try {
+            $state   = $this->session->generateState();
+            $options = [
+                'scope' => [
+                    'user-read-email',
+                    'user-read-private',
+                    'user-modify-playback-state',
+                    'user-read-playback-state',
+                    'user-read-currently-playing',
+                    'user-read-recently-played',
+                    'user-read-playback-position',
+                    'user-top-read',
+                    'user-library-read',
+                    'playlist-modify-public',
+                    'playlist-read-private',
+                    'playlist-modify-private',
+                    'streaming',
+                ],
+                'state' => $state,
+            ];
+            // setcookie('state', $state, time() + (3600 * 365), '/');
+            // aktif 1 bulan
+            set_cookie('state', $state, (3600 * 24 * 30), '', '/', '', false, false);
+            $respon = [
+                'status'   => true,
+                'callback' => $this->session->getAuthorizeUrl($options),
+            ];
 
-        return $this->response->setJSON($respon);
+            return $this->response->setJSON($respon);
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
     }
 
-    public function callback() {
-        $code = $this->request->getGet('code');
-        // $state = $this->request->getGet('state');
+    public function callback()
+    {
+        try {
+            $code = $this->request->getGet('code');
+            $this->session->requestAccessToken($code);
+            $accessToken  = $this->session->getAccessToken();
+            $refreshToken = $this->session->getRefreshToken();
+            $this->setCookieToken($accessToken, $refreshToken);
 
-        // if ($state != get_cookie('state')) {
-        //     // The state returned isn't the same as the one we've stored, we shouldn't continue
-        //     die('State mismatch');
-        // }
-
-        $this->session->requestAccessToken($code);
-        $accessToken  = $this->session->getAccessToken();
-        $refreshToken = $this->session->getRefreshToken();
-
-        // setcookie('accessToken', $accessToken, time() + 3600, '/');
-        // setcookie('refreshToken', $refreshToken, time() + (3600 * 365), '/');
-        // setcookie('refreshTime', time() + 3300, time() + 3300, '/');
-
-        $this->setCookieToken($accessToken, $refreshToken);
-
-        return view('callback');
+            return view('callback');
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
     }
 
-    public function refresh() {
-        $refreshToken = get_cookie('refreshToken');
-        $this->session->refreshAccessToken($refreshToken);
+    public function refresh()
+    {
+        try {
+            $refreshToken = get_cookie('refreshToken');
+            $this->session->refreshAccessToken($refreshToken);
 
-        $api = new SpotifyWebAPI(['auto_refresh' => true], $this->session);
-        $api->setSession($this->session);
+            $api = new SpotifyWebAPI(['auto_refresh' => true], $this->session);
+            $api->setSession($this->session);
 
-        $accessToken  = $this->session->getAccessToken();
-        $refreshToken = $this->session->getRefreshToken();
+            $accessToken  = $this->session->getAccessToken();
+            $refreshToken = $this->session->getRefreshToken();
 
-        $this->setCookieToken($accessToken, $refreshToken);
-        $api->setAccessToken($accessToken);
-        echo $accessToken;
+            $this->setCookieToken($accessToken, $refreshToken);
+            $api->setAccessToken($accessToken);
+            echo $accessToken;
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
     }
 
-    public function logout() {
+    public function logout()
+    {
         // hapus semua session lama
         session()->remove('login');
         $generateSession = session()->get('__ci_last_regenerate');
@@ -372,28 +395,67 @@ class Home extends BaseController {
         return $this->response->setJSON(true);
     }
 
-    private function _setAccessToken() {
-        $accessToken = get_cookie('accessToken');
-        $refreshTime = get_cookie('refreshTime');
+    public function sinkronLokasi()
+    {
+        try {
+            $curl = Services::curlrequest()->get('https://jadwal-sholat-gilt.vercel.app/api/sholat/kota/');
+            $content = json_decode($curl->getBody());
+            if ($curl->getStatusCode() == 200) {
+                foreach ($content->data as $val) {
+                    $find = $this->setting->findLokasiId($val->id);
+                    if (empty($find)) {
+                        $data = [
+                            'id' => $val->id,
+                            'lokasi' => $val->lokasi,
+                        ];
+                        $this->setting->saveLokasi($data);
+                    }
+                }
+                $respon = [
+                    'status' => true,
+                    'pesan'  => 'Sinkronisasi sukses',
+                ];
+            } else {
+                $respon = [
+                    'status' => false,
+                    'pesan'  => 'Gagal',
+                ];
+            }
 
-        if (get_cookie('refreshToken') == null) {
-            return false;
-        } else if (time() >= (int) $refreshTime || $refreshTime == null || $accessToken == null) {
-
-            $this->session->refreshAccessToken(get_cookie('refreshToken'));
-            $api = new SpotifyWebAPI(['auto_refresh' => true], $this->session);
-            $api->setSession($this->session);
-            $accessToken  = $this->session->getAccessToken();
-            $refreshToken = $this->session->getRefreshToken();
-            $this->setCookieToken($accessToken, $refreshToken);
-
-            Services::spotify()->setToken($accessToken);
-        } else {
-            Services::spotify()->setToken(get_cookie('accessToken'));
+            return $this->response->setJSON($respon);
+        } catch (\Throwable $th) {
+            //throw $th;
         }
     }
 
-    private function setCookieToken($accessToken, $refreshToken) {
+    private function _setAccessToken()
+    {
+        try {
+            $accessToken = get_cookie('accessToken');
+            $refreshTime = get_cookie('refreshTime');
+
+            if (get_cookie('refreshToken') == null) {
+                return false;
+            } else if (time() >= (int) $refreshTime || $refreshTime == null || $accessToken == null) {
+
+                $this->session->refreshAccessToken(get_cookie('refreshToken'));
+                $api = new SpotifyWebAPI(['auto_refresh' => true], $this->session);
+                $api->setSession($this->session);
+                $accessToken  = $this->session->getAccessToken();
+                $refreshToken = $this->session->getRefreshToken();
+                $this->setCookieToken($accessToken, $refreshToken);
+
+                Services::spotify()->setToken($accessToken);
+            } else {
+                Services::spotify()->setToken(get_cookie('accessToken'));
+            }
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
+    }
+
+    private function setCookieToken($accessToken, $refreshToken)
+    {
         // bawaan php
         // setcookie('accessToken', $accessToken, time() + 3600, '/');
         // setcookie('refreshToken', $refreshToken, time() + (3600 * 365), '/');

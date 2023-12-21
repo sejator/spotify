@@ -14,11 +14,15 @@
 <script>
     $('#btn-auth').on('click', function(e) {
         e.preventDefault()
+        const w = 400;
+        const h = 600;
+        const left = Number((screen.width / 2) - (w / 2));
+        const top = Number((screen.height / 2) - (h / 2));
         $.ajax({
             url: `${SITE_URL}/home/accessToken`,
             success: (respon) => {
-                if(respon.status) {
-                    window.open(respon.callback, "Connect Spotify", "height=600,width=450,toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=auto,resizable=yes,copyhistory=no");
+                if (respon.status) {
+                    window.open(respon.callback, "Connect Spotify", `height=${h},width=${w},left=${left},top=${top},toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=auto,resizable=yes,copyhistory=no`);
                 }
             },
             error: (xhr, status, message) => {

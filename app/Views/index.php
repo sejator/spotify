@@ -6,6 +6,7 @@
             <div class="col-md-12 text-center">
                 <h4 id="info_kota"></h4>
                 <span class="mx-2 waktu" id="hari"></span>
+                <br>
                 <span class="mx-2 waktu" id="jam"></span><span class="waktu">WIB</span>
             </div>
         </div>
@@ -15,23 +16,23 @@
                     <tbody>
                         <tr>
                             <th>Subuh</th>
-                            <th id="subuh"></th>
+                            <th id="subuh">00:00</th>
                         </tr>
                         <tr>
                             <th>Dzuhur</th>
-                            <th id="dzuhur"></th>
+                            <th id="dzuhur">00:00</th>
                         </tr>
                         <tr>
                             <th>Ashar</th>
-                            <th id="ashar"></th>
+                            <th id="ashar">00:00</th>
                         </tr>
                         <tr>
                             <th>Maghrib</th>
-                            <th id="maghrib"></th>
+                            <th id="maghrib">00:00</th>
                         </tr>
                         <tr>
                             <th>Isya</th>
-                            <th id="isya"></th>
+                            <th id="isya">00:00</th>
                         </tr>
                     </tbody>
                 </table>
@@ -43,7 +44,7 @@
                         <span class="waktu" id="info_adzan"></span>
                     </div>
                 </div>
-                <span>Sumber : <i>https://bimasislam.kemenag.go.id</i></span>
+                <span>Sumber : <i>https://www.jadwalsholat.org/</i></span>
             </div>
         </div>
     </div>

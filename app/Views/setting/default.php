@@ -4,6 +4,7 @@
             <div class="col-md-12">
                 <h4>Setting Default Aplikasi</h4>
                 <div class="text-right mb-3">
+                    <button class="btn btn-success" id="btn-sinkron"><i class="flaticon-refresh"></i> Sinkronisasi Lokasi</button>
                     <button data-id="setting" class="btn btn-warning btn-back" title="Back"><i class="flaticon-back-1"></i> Back</button>
                 </div>
                 <div class="col-md-6">
@@ -22,11 +23,11 @@
                         </div>
                         <div class="form-group">
                             <label for="jeda_adzan">Jeda Adzan (*Menit)</label>
-                            <input type="number" class="form-control" id="jeda_adzan" name="jeda_adzan" min="1" max="10" value="<?= esc($setting->jeda_adzan) ?>">
+                            <input type="number" class="form-control" id="jeda_adzan" name="jeda_adzan" min="0" max="10" value="<?= esc($setting->jeda_adzan) ?>">
                         </div>
                         <div class="form-group">
                             <label for="jeda_iklan">Jeda Iklan (*Detik)</label>
-                            <input type="number" class="form-control" id="jeda_iklan" name="jeda_iklan" min="1" max="20" value="<?= esc($setting->jeda_iklan) ?>">
+                            <input type="number" class="form-control" id="jeda_iklan" name="jeda_iklan" min="0" max="20" value="<?= esc($setting->jeda_iklan) ?>">
                         </div>
                         <div class="form-group">
                             <label>Status Adzan</label>
@@ -138,5 +139,31 @@
                 }
             })
         };
+    })
+    $('#btn-sinkron').on('click', function(e) {
+        e.preventDefault()
+        $.ajax({
+            type: 'get',
+            url: `${SITE_URL}/home/sinkron`,
+            success: (respon) => {
+                if (respon.status) {
+                    toast({
+                        type: 'success',
+                        title: 'Sinkronisasi Lokasi Sukses',
+                    })
+                } else {
+                    toast({
+                        type: 'error',
+                        title: 'Gagal',
+                    })
+                }
+            },
+            error: (xhr, status, messages) => {
+                toast({
+                    type: 'error',
+                    title: messages,
+                })
+            }
+        })
     })
 </script>
