@@ -173,7 +173,10 @@ $(document).on("click", ".play-iklan", function () {
   iklan.pause();
   iklan.src = $(this).data("file");
   setTimeout(() => {
-    blokElement("header");
+    blokElement("section");
+    $("header").block({
+      message: `<h3>Lagi play iklan...</h3>`,
+    });
     console.log("Iklan play");
     iklan.play();
   }, 2000);
@@ -736,7 +739,7 @@ function playMusikLagi(timer) {
   ulang = true;
   setTimeout(() => {
     if (cek_info == false) {
-      unblokElement("body, header, .navbar");
+      unblokElement("body, header, .navbar, section");
       cek_info = true;
       player.resume().then(() => {
         console.log("Resumed!");
