@@ -250,12 +250,12 @@ function pageLoad() {
     .then((response) => response.json())
     .then((data) => {
       // seting default aplikasi
-      kota = data.setting.kota;
+      kota = data.setting.kota_id;
       suara_adzan = data.setting.suara_adzan;
       jeda_adzan = data.setting.jeda_adzan;
       jeda_iklan = data.setting.jeda_iklan;
 
-      localStorage.setItem("kota", data.setting.kota);
+      localStorage.setItem("kota", data.setting.kota_id);
       localStorage.setItem("suara_adzan", data.setting.suara_adzan);
       localStorage.setItem("jeda_adzan", data.setting.jeda_adzan);
       localStorage.setItem("jeda_iklan", data.setting.jeda_iklan);

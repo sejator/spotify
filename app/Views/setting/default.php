@@ -17,7 +17,7 @@
                             <label for="kota">Lokasi (*Jadwal sholat)</label>
                             <select name="kota" id="kota" class="form-control pilih-lokasi">
                                 <?php foreach ($lokasi as $lok) : ?>
-                                    <option value="<?= $lok->id ?>" <?= $lok->id == $setting->kota ? 'selected' : ''; ?>><?= $lok->lokasi; ?></option>
+                                    <option value="<?= $lok->kota_id ?>" <?= $lok->kota_id == $setting->kota_id ? 'selected' : ''; ?>><?= $lok->kota; ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -104,13 +104,13 @@
                 data: $('form').serialize(),
                 success: (respon) => {
                     if (respon.status) {
-                        let data = JSON.parse(respon.data)
+                        let data = respon.data
                         toast({
                             type: 'success',
                             title: 'Update Sukses',
                         })
                         if ($('#kota').val() != localStorage.getItem('kota')) {
-                            localStorage.setItem('kota', data.kota)
+                            localStorage.setItem('kota', data.kota_id)
                             updateJadwalSholat()
                         }
                         if (data.suara_adzan == 1) {
@@ -142,10 +142,15 @@
     })
     $('#btn-sinkron').on('click', function(e) {
         e.preventDefault()
+        let btn = $(this)
         $.ajax({
             type: 'get',
             url: `${SITE_URL}/home/sinkron`,
+            beforeSend: (ok) => {
+                btn.html('Proses Sinkronisasi...').prop('disabled', true)
+            },
             success: (respon) => {
+                btn.html('<i class="flaticon-refresh"></i> Sinkronisasi Lokasi').prop('disabled', false)
                 if (respon.status) {
                     toast({
                         type: 'success',
@@ -159,6 +164,7 @@
                 }
             },
             error: (xhr, status, messages) => {
+                btn.html('<i class="flaticon-refresh"></i> Sinkronisasi Lokasi').prop('disabled', false)
                 toast({
                     type: 'error',
                     title: messages,

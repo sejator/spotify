@@ -211,10 +211,20 @@ class Home extends BaseController
 
     public function setting()
     {
-        $cek = $this->setting->updateSetting($this->request->getPost());
+        $data = [
+            'nama_app' => $this->request->getPost('nama_app'),
+            'kota_id' => $this->request->getPost('kota'),
+            'jeda_adzan' => $this->request->getPost('jeda_adzan'),
+            'jeda_iklan' => $this->request->getPost('jeda_iklan'),
+            'suara_adzan' => $this->request->getPost('suara_adzan'),
+            'cek_info' => $this->request->getPost('cek_info'),
+            'pencarian' => $this->request->getPost('pencarian'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+        $cek = $this->setting->updateSetting($data);
         cache()->delete('data_home');
 
-        return $this->response->setJSON(['status' => $cek, 'data' => json_encode($this->request->getPost())]);
+        return $this->response->setJSON(['status' => $cek, 'data' => $data]);
     }
 
     public function uploadBacksound()
@@ -238,6 +248,8 @@ class Home extends BaseController
                 $data = [
                     'file' => $file->getName(),
                     'size' => $size,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ];
                 $this->setting->uploadBacksound($data);
                 $respon = [
@@ -286,6 +298,8 @@ class Home extends BaseController
                 $data = [
                     'file' => $file->getName(),
                     'size' => $size,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ];
                 $this->setting->uploadIklan($data);
                 $respon = [
@@ -405,8 +419,10 @@ class Home extends BaseController
                     $find = $this->setting->findLokasiId($val->id);
                     if (empty($find)) {
                         $data = [
-                            'id' => $val->id,
-                            'lokasi' => $val->lokasi,
+                            'kota_id' => $val->id,
+                            'kota' => $val->lokasi,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s'),
                         ];
                         $this->setting->saveLokasi($data);
                     }

@@ -28,12 +28,12 @@ class SettingModel extends Model
 
     public function getLokasi()
     {
-        return $this->builder('lokasi')->orderBy('lokasi')->get()->getResult();
+        return $this->builder('lokasi')->orderBy('kota')->get()->getResult();
     }
 
     public function findLokasiId($id)
     {
-        return $this->builder('lokasi')->where('id', $id)->get()->getRow();
+        return $this->builder('lokasi')->where('kota_id', $id)->get()->getRow();
     }
 
     public function saveLokasi($data)
