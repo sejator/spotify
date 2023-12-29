@@ -133,6 +133,10 @@ class Home extends BaseController
                         'album' => Services::spotify()->detailAlbum($param),
                     ]);
                     break;
+                case 'cache':
+                    cache()->delete('data_home');
+                    echo '<div class="alert alert-primary" role="alert">Cache berhasil di hapus!</div>';
+                    break;
 
                 default:
                     // halaman khusus untuk admin

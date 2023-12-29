@@ -136,6 +136,11 @@
                                 <i class="flaticon-settings-4"></i>
                             </a>
                         </li>
+                        <li class="menu bs-tooltip" title="Clear Cache" data-toggle="tooltip" data-placement="right">
+                            <a href="#cache" class="dropdown-toggle">
+                                <i class="flaticon-refresh"></i>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </div>
