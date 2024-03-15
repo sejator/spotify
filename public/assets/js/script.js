@@ -9,6 +9,9 @@ const SITE_URL = $("body").data("url"),
     timer: 2000,
   });
 
+let kota_bandung = 1219;
+let updateJadwalSholatMax = 0;
+
 // default variabel
 let ulang = true,
   jadwal_sholat = null,
@@ -349,7 +352,9 @@ function tampilJam() {
   jadwal_sholat = JSON.parse(localStorage.getItem("jadwal_sholat"));
   // untuk update jadwal sholat setiap pergantian tanggal
   if (jadwal_sholat == null || jadwal_sholat.data.jadwal.tanggal != tanggal) {
-    updateJadwalSholat();
+    if (updateJadwalSholatMax < 3) {
+      updateJadwalSholat();
+    }
   }
 
   suara_adzan = localStorage.getItem("suara_adzan");
@@ -454,18 +459,22 @@ function updateJadwalSholat() {
   let bulan = updateTime(date.getMonth() + 1);
   let tanggal = updateTime(date.getDate());
 
-  kota = localStorage.getItem("kota") ? localStorage.getItem("kota") : 14; // default kota bandung
+  kota = localStorage.getItem("kota") ? localStorage.getItem("kota") : kota_bandung; // default kota bandung
   let url = `${API_JADWAL}/${kota}/${tahun}/${bulan}/${tanggal}`;
   fetch(url)
     .then((response) => response.json())
     .then((data) => {
-      localStorage.setItem("jadwal_sholat", JSON.stringify(data));
-      jadwal_sholat = JSON.parse(localStorage.getItem("jadwal_sholat"));
-      tampilJadwalSholat();
-      toast({
-        type: "success",
-        title: "Jadwal Sholat berhasil diupdate!",
-      });
+      if (data.status) {
+        localStorage.setItem("jadwal_sholat", JSON.stringify(data));
+        jadwal_sholat = JSON.parse(localStorage.getItem("jadwal_sholat"));
+        tampilJadwalSholat();
+        toast({
+          type: "success",
+          title: "Jadwal Sholat berhasil diupdate!",
+        });
+      } else {
+        updateJadwalSholatMax++;
+      }
     });
 }
 

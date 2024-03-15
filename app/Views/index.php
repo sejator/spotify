@@ -44,7 +44,7 @@
                         <span class="waktu" id="info_adzan"></span>
                     </div>
                 </div>
-                <span>Sumber : <i>https://www.jadwalsholat.org/</i></span>
+                <span>Sumber : <i>https://bimasislam.kemenag.go.id/</i></span>
             </div>
         </div>
     </div>
