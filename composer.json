@@ -11,7 +11,7 @@
   ],
   "require": {
     "php": "^7.4 || ^8.0",
-    "codeigniter4/framework": "4.4.3",
+    "codeigniter4/framework": "4.4.7",
     "jwilsson/spotify-web-api-php": "^5.7"
   },
   "require-dev": {
